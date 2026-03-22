@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TradeStack — Admin Console Preview</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.development.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.development.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState } = React;
+
+async function callClaude(system, user) {
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({ model:"claude-sonnet-4-20250514", max_tokens:1000, system, messages:[{role:"user",content:user}] }),
+  });
+  return (await res.json()).content?.[0]?.text || "";
+}
+
+const SPRINT = { num:1, start:"Mar 16", end:"Mar 30", dayElapsed:6, dayTotal:14 };
+
+const BACKLOG = [
+  {id:"PB-01",title:"Referral network tab",priority:"P0",pts:8,type:"Feature",source:"Product Agent",sprint:null,status:"Backlog"},
+  {id:"PB-02",title:"Competitor tab: real web search data",priority:"P0",pts:5,type:"Bug",source:"Support Agent",sprint:1,status:"In Progress"},
+  {id:"PB-03",title:"Email alert when financial score drops",priority:"P1",pts:3,type:"Feature",source:"Finance Agent",sprint:1,status:"In Progress"},
+  {id:"PB-04",title:"Onboarding checklist for new signups",priority:"P1",pts:3,type:"Feature",source:"Onboarding Agent",sprint:1,status:"Done"},
+  {id:"PB-05",title:"Weekly analytics digest to owner",priority:"P1",pts:2,type:"Feature",source:"Analytics Agent",sprint:1,status:"Done"},
+  {id:"PB-06",title:"Stripe integration for paid tier",priority:"P1",pts:8,type:"Feature",source:"Owner",sprint:null,status:"Backlog"},
+  {id:"PB-07",title:"Mobile-responsive layout",priority:"P1",pts:5,type:"Improvement",source:"Support Agent",sprint:null,status:"Backlog"},
+  {id:"PB-08",title:"Outreach tracking dashboard",priority:"P2",pts:5,type:"Feature",source:"Outreach Agent",sprint:null,status:"Backlog"},
+  {id:"PB-09",title:"Export lean canvas as PDF",priority:"P2",pts:2,type:"Feature",source:"Product Agent",sprint:null,status:"Backlog"},
+  {id:"PB-10",title:"Industries filter for referral network",priority:"P2",pts:3,type:"Feature",source:"Research Agent",sprint:null,status:"Backlog"},
+  {id:"PB-11",title:"Per-user engagement score in admin",priority:"P2",pts:3,type:"Feature",source:"Analytics Agent",sprint:null,status:"Backlog"},
+  {id:"PB-12",title:"Seasonal revenue forecasting tab",priority:"P3",pts:8,type:"Feature",source:"Finance Agent",sprint:null,status:"Backlog"},
+];
+
+const STANDUPS = [
+  { date:"Mar 22 · Today", agents:[
+    {name:"Research",emoji:"🔍",s:"green",update:"Completed competitor refresh for 3 users. Flagged new competitor: Apex Mechanical (opened Nov 2025).",blocker:null},
+    {name:"Analytics",emoji:"📊",s:"green",update:"7 active users this week, 2 new signups. Avg session 8.2min. Competitor tab has 3× more views than Financial tab.",blocker:null},
+    {name:"Outreach",emoji:"📣",s:"amber",update:"4 emails drafted and queued for owner approval. 0 sent — awaiting review.",blocker:"Approval queue has 4 items pending 3+ days."},
+    {name:"Product",emoji:"🔧",s:"green",update:"Triaged 6 feedback items. 2 escalated to backlog. 4 resolved as FAQ updates.",blocker:null},
+    {name:"Finance",emoji:"💰",s:"green",update:"Re-ran analysis for 2 users who updated financials. 1 critical drain flagged (user #4, op-ex 68%).",blocker:null},
+    {name:"Support",emoji:"🛟",s:"red",update:"1 frustrated user — said competitor tab 'feels like fake data'. Risk of churn.",blocker:"PB-02 unresolved — causing repeat complaints."},
+  ]},
+  { date:"Mar 21", agents:[
+    {name:"Research",emoji:"🔍",s:"green",update:"Weekly market scan complete. 3 new prospects added to outreach queue.",blocker:null},
+    {name:"Analytics",emoji:"📊",s:"green",update:"Signup-to-setup completion: 71%. 2 users dropped at financial data entry.",blocker:null},
+    {name:"Outreach",emoji:"📣",s:"green",update:"Drafted 3 cold emails. Delivered to approval queue.",blocker:null},
+    {name:"Support",emoji:"🛟",s:"green",update:"2 feedback items: 1 feature request (PDF export), 1 positive. Both routed to Product Agent.",blocker:null},
+  ]},
+];
+
+const REVIEW_ITEMS = [
+  {id:"R-01",agent:"Outreach",emoji:"📣",title:"Cold email — Castle Home Repair LLC",urgency:"Normal",preview:`Subject: Quick question about your schedule\n\nHey — saw Castle Home Repair on Yelp. Honest question: are you spending more time answering calls and chasing invoices than actually doing repairs?\n\nWe built a free tool that shows trades businesses exactly where they're losing money. 10 minutes to set up. Free for 90 days, no card.\n\nWorth a look?`},
+  {id:"R-02",agent:"Outreach",emoji:"📣",title:"Cold email — J&T Painting",urgency:"Normal",preview:`Subject: Quick question for J&T\n\nRunning a painting crew means you're the estimator, scheduler, bookkeeper, and HR department all at once. We made something that shows you exactly where that's costing you money.\n\nFree for 90 days, 10 minutes to set up.\n\nInterested?`},
+  {id:"R-03",agent:"Product",emoji:"🔧",title:"Feature Spec: Competitor real data (PB-02)",urgency:"High",preview:`P0 — Critical\nProblem: Users recognize competitor data as AI estimates, not real businesses. Causing trust loss.\nSolution: Integrate web search — pull real business names, ratings, review counts from Google/Yelp API.\nSuccess metric: 0 "fake data" complaints within 14 days of ship.\nEffort: 3-5 days dev.`},
+  {id:"R-04",agent:"Finance",emoji:"💰",title:"Alert: User #4 critical drain",urgency:"High",preview:`User: Apex Handyman (Mike R.)\nOp-ex ratio: 68% — industry avg is 38-45%.\nLikely cause: Vehicle/fuel costs + tools not tracked per job.\nAction needed: Owner approval to surface this alert to the user's dashboard.`},
+  {id:"R-05",agent:"Research",emoji:"🔍",title:"New competitor: Apex Mechanical SC",urgency:"Normal",preview:`New business: Apex Mechanical, State College PA. Opened ~Nov 2025.\nEst. revenue: <$50K. Targeting HVAC + plumbing residential.\nThreat: Low now, Medium within 12 months.\nOpportunity: No online presence yet — your users can capture reviews first.`},
+];
+
+const RETRO = [
+  {head:"✅ Went Well",cls:"rh-g",items:["Onboarding checklist shipped on time","Analytics digest running clean","Support Agent caught churn risk on user #3 before they left"]},
+  {head:"⚠ Needs Improvement",cls:"rh-a",items:["Approval queue backlog — 4 emails sat 3+ days","Competitor trust issue recurring — PB-02 should have been P0","No scope limit on Research Agent — over-delivered"]},
+  {head:"→ Sprint 2 Actions",cls:"rh-b",items:["Set 48hr SLA on all review queue items","PB-02 is Sprint 2 first priority","Define word-count limit for Research Agent outputs"]},
+];
+
+const CSS = `
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800;900&family=Inconsolata:wght@300;400;500&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{-webkit-text-size-adjust:100%;}
+body{background:#0d0d0d;}
+.app{min-height:100vh;background:#0d0d0d;color:#ddd8ce;font-family:'Inconsolata',monospace;font-size:13px;font-weight:300;}
+
+/* TOP BAR */
+.bar{height:48px;background:#111;border-bottom:1px solid #1c1c1c;display:flex;align-items:center;padding:0 1rem;gap:.75rem;position:sticky;top:0;z-index:200;}
+.logo{font-family:'Archivo',sans-serif;font-weight:900;font-size:.95rem;letter-spacing:-.02em;color:#ddd8ce;white-space:nowrap;}
+.logo b{color:#e07b39;}
+.sbadge{margin-left:auto;font-size:.58rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;background:#1a1200;color:#e07b39;border:1px solid #3a2800;padding:.2rem .55rem;border-radius:2px;display:flex;align-items:center;gap:.4rem;white-space:nowrap;flex-shrink:0;}
+.sdot{width:5px;height:5px;border-radius:50%;background:#e07b39;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
+
+/* NAV */
+.nav-toggle{display:flex;align-items:center;justify-content:center;width:36px;height:36px;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:3px;cursor:pointer;font-size:1rem;flex-shrink:0;-webkit-tap-highlight-color:transparent;}
+@media(min-width:768px){.nav-toggle{display:none;}}
+
+.layout{display:flex;position:relative;}
+
+.sidebar{
+  position:fixed;top:48px;left:0;bottom:0;width:210px;
+  background:#0f0f0f;border-right:1px solid #1c1c1c;
+  overflow-y:auto;z-index:150;
+  transform:translateX(-100%);transition:transform .2s;
+  padding:1rem 0;
+}
+.sidebar.open{transform:translateX(0);}
+@media(min-width:768px){
+  .sidebar{position:sticky;transform:none;top:0;height:calc(100vh - 48px);flex-shrink:0;}
+}
+
+.snlbl{font-size:.55rem;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:#333;padding:0 .9rem;margin:.9rem 0 .35rem;}
+.snlbl:first-child{margin-top:0;}
+.snbtn{display:flex;align-items:center;gap:.55rem;width:100%;padding:.5rem .9rem;border:none;background:none;cursor:pointer;text-align:left;transition:background .1s;-webkit-tap-highlight-color:transparent;}
+.snbtn:hover{background:#161616;}
+.snbtn.on{background:#181200;border-right:2px solid #e07b39;}
+.snbi{font-size:.85rem;width:18px;text-align:center;}
+.snbl{font-family:'Archivo',sans-serif;font-weight:600;font-size:.7rem;color:#666;}
+.snbtn.on .snbl{color:#ddd8ce;}
+.sncnt{margin-left:auto;background:#2a1800;color:#e07b39;font-size:.56rem;font-weight:600;padding:.08rem .3rem;border-radius:2px;}
+
+/* OVERLAY */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:140;}
+.overlay.show{display:block;}
+@media(min-width:768px){.overlay{display:none!important;}}
+
+/* MAIN */
+.main{flex:1;overflow-y:auto;padding:1rem;min-width:0;}
+@media(min-width:768px){.main{padding:1.5rem;}}
+
+/* SECTION */
+.sh{display:flex;align-items:center;gap:.6rem;margin-bottom:.25rem;}
+.st{font-family:'Archivo',sans-serif;font-weight:800;font-size:.95rem;color:#ddd8ce;letter-spacing:-.01em;}
+.sl{flex:1;height:1px;background:#1c1c1c;}
+.ss{font-size:.68rem;color:#555;margin-bottom:.9rem;}
+
+/* CARDS */
+.card{background:#111;border:1px solid #1c1c1c;border-radius:3px;padding:.9rem;}
+
+/* STATS GRID */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:.65rem;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.65rem;}
+.g4{display:grid;grid-template-columns:1fr 1fr;gap:.65rem;}
+@media(min-width:600px){.g4{grid-template-columns:repeat(4,1fr);}}
+
+.stat-v{font-family:'Archivo',sans-serif;font-weight:800;font-size:1.6rem;line-height:1;color:#ddd8ce;}
+.stat-l{font-size:.57rem;font-weight:500;letter-spacing:.15em;text-transform:uppercase;color:#444;margin-top:.25rem;}
+.stat-d{font-size:.65rem;margin-top:.15rem;}
+.dup{color:#4ade80;}.ddn{color:#f87171;}.dfl{color:#555;}
+
+/* SPRINT BAR */
+.sbar-wrap{background:#1a1a1a;border-radius:2px;height:5px;overflow:hidden;margin:.45rem 0;}
+.sbar-fill{height:100%;background:#e07b39;border-radius:2px;}
+.tick-row{display:flex;gap:2px;margin-top:.4rem;}
+.tick{flex:1;height:3px;border-radius:1px;}
+
+/* PILLS */
+.pill{display:inline-flex;align-items:center;font-size:.55rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;padding:.1rem .38rem;border-radius:2px;}
+.p-r{background:#1e0a0a;color:#f87171;}
+.p-a{background:#1e1200;color:#e07b39;}
+.p-g{background:#0a1e10;color:#4ade80;}
+.p-b{background:#0a1020;color:#60a5fa;}
+.p-x{background:#1a1a1a;color:#555;}
+
+/* BOARD */
+.board-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+.board{display:grid;grid-template-columns:repeat(4,minmax(200px,1fr));gap:.65rem;min-width:820px;}
+.bcol{background:#0f0f0f;border:1px solid #1c1c1c;border-radius:3px;padding:.65rem;min-height:260px;}
+.bcolh{font-family:'Archivo',sans-serif;font-weight:700;font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:#555;margin-bottom:.65rem;display:flex;align-items:center;justify-content:space-between;}
+.bcolh span{background:#1a1a1a;color:#555;font-size:.56rem;padding:.08rem .3rem;border-radius:2px;}
+.ticket{background:#141414;border:1px solid #202020;border-radius:3px;padding:.6rem;margin-bottom:.45rem;}
+.t-id{font-size:.56rem;color:#444;margin-bottom:.15rem;}
+.t-title{font-family:'Archivo',sans-serif;font-weight:600;font-size:.72rem;color:#ccc;line-height:1.3;margin-bottom:.35rem;}
+.t-meta{display:flex;gap:.25rem;flex-wrap:wrap;}
+.t-src{font-size:.58rem;color:#444;margin-top:.25rem;}
+
+/* STANDUP */
+.sdup-tabs{display:flex;gap:.4rem;margin-bottom:.9rem;overflow-x:auto;}
+.sdup-tab{padding:.3rem .7rem;background:#1a1a1a;color:#666;border:1px solid #2a2a2a;border-radius:2px;cursor:pointer;font-family:'Archivo',sans-serif;font-weight:700;font-size:.62rem;white-space:nowrap;-webkit-tap-highlight-color:transparent;}
+.sdup-tab.on{background:#e07b39;color:#0d0d0d;border-color:#e07b39;}
+.sr{display:flex;align-items:flex-start;gap:.65rem;padding:.7rem 0;border-bottom:1px solid #161616;}
+.sr:last-child{border-bottom:none;}
+.si{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px;}
+.sig{background:#4ade80;}.sia{background:#e07b39;animation:pulse 2s infinite;}.sir{background:#f87171;}
+.sava{width:30px;height:30px;border-radius:50%;background:#1a1a1a;display:flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0;}
+.san{font-family:'Archivo',sans-serif;font-weight:700;font-size:.75rem;color:#ccc;}
+.sau{font-size:.7rem;color:#888;line-height:1.5;margin-top:.12rem;}
+.sblk{margin-top:.35rem;background:#1a0a0a;border-left:2px solid #7f1d1d;padding:.35rem .55rem;font-size:.68rem;color:#f87171;line-height:1.45;}
+
+/* REVIEW */
+.ri{background:#111;border:1px solid #1c1c1c;border-radius:3px;padding:.9rem;margin-bottom:.65rem;}
+.ri-hdr{display:flex;align-items:flex-start;gap:.65rem;margin-bottom:.55rem;}
+.ri-title{font-family:'Archivo',sans-serif;font-weight:700;font-size:.82rem;color:#ddd8ce;}
+.ri-meta{display:flex;gap:.35rem;align-items:center;margin-top:.18rem;flex-wrap:wrap;}
+.ri-pre{font-size:.7rem;color:#777;line-height:1.6;white-space:pre-wrap;background:#0d0d0d;border:1px solid #191919;padding:.65rem;border-radius:3px;margin-bottom:.65rem;max-height:130px;overflow-y:auto;}
+.ri-acts{display:flex;gap:.45rem;flex-wrap:wrap;}
+.bapp{font-family:'Archivo',sans-serif;font-weight:700;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;background:#0a1e10;color:#4ade80;border:1px solid #1a3a20;padding:.38rem .75rem;cursor:pointer;border-radius:2px;}
+.brej{font-family:'Archivo',sans-serif;font-weight:700;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;background:#1e0a0a;color:#f87171;border:1px solid #3a1a1a;padding:.38rem .75rem;cursor:pointer;border-radius:2px;}
+.bedt{font-family:'Archivo',sans-serif;font-weight:700;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;background:#1a1a1a;color:#888;border:1px solid #2a2a2a;padding:.38rem .75rem;cursor:pointer;border-radius:2px;}
+
+/* PLANNING */
+.pi{display:flex;align-items:center;gap:.65rem;padding:.55rem .7rem;background:#111;border:1px solid #1c1c1c;border-radius:3px;margin-bottom:.4rem;cursor:pointer;}
+.pi.sel{border-color:#e07b39;background:#1a1200;}
+.pichk{width:16px;height:16px;border-radius:2px;border:1px solid #2a2a2a;background:#1a1a1a;display:flex;align-items:center;justify-content:center;font-size:.62rem;flex-shrink:0;}
+.pi.sel .pichk{background:#e07b39;border-color:#e07b39;color:#000;}
+.pi-id{font-size:.58rem;color:#444;width:44px;flex-shrink:0;}
+.pi-title{font-family:'Archivo',sans-serif;font-weight:600;font-size:.72rem;color:#ccc;flex:1;min-width:0;}
+.pi-pts{font-size:.65rem;color:#555;flex-shrink:0;}
+
+/* RETRO */
+.retro-grid{display:grid;grid-template-columns:1fr;gap:.75rem;}
+@media(min-width:600px){.retro-grid{grid-template-columns:repeat(3,1fr);}}
+.rcol{background:#0f0f0f;border:1px solid #1c1c1c;border-radius:3px;padding:.9rem;}
+.rcol-h{font-family:'Archivo',sans-serif;font-weight:700;font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;margin-bottom:.65rem;}
+.rh-g{color:#4ade80;}.rh-a{color:#e07b39;}.rh-b{color:#60a5fa;}
+.ritem{display:flex;align-items:flex-start;gap:.45rem;font-size:.7rem;color:#888;line-height:1.5;padding:.35rem 0;border-bottom:1px solid #161616;}
+.ritem:last-child{border-bottom:none;}
+.ritem::before{content:'→';color:#333;flex-shrink:0;}
+
+/* AI */
+.ai-in{width:100%;background:#0f0f0f;border:1px solid #1c1c1c;color:#ddd8ce;padding:.65rem .8rem;font-family:'Inconsolata',monospace;font-size:.8rem;outline:none;border-radius:3px;transition:border-color .15s;resize:vertical;min-height:80px;}
+.ai-in:focus{border-color:#e07b39;}
+.btn-run{font-family:'Archivo',sans-serif;font-weight:700;font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;background:#e07b39;color:#0d0d0d;padding:.55rem 1.1rem;border:none;cursor:pointer;border-radius:3px;transition:background .12s;}
+.btn-run:hover{background:#f0904a;}
+.btn-run:disabled{background:#2a2a2a;color:#555;cursor:not-allowed;}
+.ai-out{background:#0d0d0d;border:1px solid #1c1c1c;border-radius:3px;padding:.9rem;margin-top:.65rem;font-size:.73rem;color:#aaa;line-height:1.7;white-space:pre-wrap;}
+
+/* FLOW */
+.flow{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;justify-content:center;padding:1rem 0;}
+.fn{background:#111;border:1px solid #1c1c1c;border-radius:3px;padding:.5rem .75rem;text-align:center;}
+.fn.act{border-color:#e07b39;background:#1a1200;}
+.fn.own{border-color:#60a5fa;background:#0a1020;}
+.fn-e{font-size:1.1rem;}
+.fn-n{font-family:'Archivo',sans-serif;font-weight:700;font-size:.6rem;color:#555;margin-top:.15rem;}
+.fn.act .fn-n{color:#e07b39;}.fn.own .fn-n{color:#60a5fa;}
+.farrow{color:#2a2a2a;font-size:.85rem;}
+
+/* BLOCKERS */
+.blk-item{background:#1a0a0a;border-left:2px solid #7f1d1d;padding:.5rem .7rem;font-size:.7rem;color:#f87171;line-height:1.5;margin-bottom:.4rem;border-radius:0 3px 3px 0;}
+`;
+
+const PC = {P0:"p-r",P1:"p-a",P2:"p-b",P3:"p-x"};
+const SC = {"Backlog":"p-x","In Progress":"p-a","Done":"p-g","Blocked":"p-r"};
+const TC = {"Feature":"p-b","Bug":"p-r","Improvement":"p-a"};
+
+const NAV = [
+  {id:"overview",icon:"⬛",label:"Overview"},
+  {id:"standup",icon:"☀️",label:"Daily Standup",count:2},
+  {id:"board",icon:"📋",label:"Sprint Board"},
+  {id:"review",icon:"✅",label:"Review Queue",count:5},
+  {id:"planning",icon:"🗓️",label:"Sprint Planning"},
+  {id:"retro",icon:"🔄",label:"Retrospective"},
+  {id:"backlog",icon:"📦",label:"Product Backlog"},
+  {id:"flow",icon:"♻️",label:"Agent Loop"},
+  {id:"ai",icon:"🤖",label:"AI Assistant"},
+];
+
+function App() {
+  const [view,setView]         = useState("overview");
+  const [menuOpen,setMenuOpen] = useState(false);
+  const [backlog,setBacklog]   = useState(BACKLOG);
+  const [rstates,setRstates]   = useState({});
+  const [selected,setSelected] = useState([]);
+  const [sdDay,setSdDay]       = useState(0);
+  const [aiIn,setAiIn]         = useState("");
+  const [aiOut,setAiOut]       = useState("");
+  const [aiRun,setAiRun]       = useState(false);
+
+  const navigate = (id) => { setView(id); setMenuOpen(false); };
+  const sprintItems = backlog.filter(b=>b.sprint===1);
+  const donePts     = sprintItems.filter(b=>b.status==="Done").reduce((a,b)=>a+b.pts,0);
+  const totalPts    = sprintItems.reduce((a,b)=>a+b.pts,0);
+  const pct         = Math.round((SPRINT.dayElapsed/SPRINT.dayTotal)*100);
+  const pendingRev  = REVIEW_ITEMS.filter(r=>!rstates[r.id]||rstates[r.id]==="Pending").length;
+  const blockers    = STANDUPS[0].agents.filter(a=>a.blocker);
+
+  const toggleSel = id => setSelected(s=>s.includes(id)?s.filter(x=>x!==id):[...s,id]);
+  const commitSprint = () => { setBacklog(bl=>bl.map(b=>selected.includes(b.id)?{...b,sprint:2,status:"In Progress"}:b)); setSelected([]); };
+
+  const runAI = async () => {
+    setAiRun(true); setAiOut("");
+    const sys = `You are the AI Scrum assistant for TradeStack. Sprint ${SPRINT.num}, Day ${SPRINT.dayElapsed}/${SPRINT.dayTotal}. ${SPRINT.dayTotal-SPRINT.dayElapsed} days left. Velocity: ${donePts}/${totalPts} pts. ${pendingRev} items pending review. ${blockers.length} active blockers. Be direct and tactical.`;
+    const out = await callClaude(sys, aiIn);
+    setAiOut(out); setAiRun(false);
+  };
+
+  const FLOW_NODES = [
+    {e:"📊",n:"Analytics",act:true},{arrow:"→"},{e:"🔍",n:"Research",act:true},{arrow:"→"},
+    {e:"📣",n:"Outreach"},{arrow:"→"},{e:"🧑",n:"You (SM)",own:true},{arrow:"→"},
+    {e:"🔧",n:"Product"},{arrow:"→"},{e:"🛟",n:"Support"},{arrow:"↩"},
+    {e:"♟️",n:"Strategy"},{arrow:"→"},{e:"💰",n:"Finance"},
+  ];
+
+  return (
+    <>
+      <style>{CSS}</style>
+      <div className="app">
+
+        <div className="bar">
+          <button className="nav-toggle" onClick={()=>setMenuOpen(!menuOpen)}>☰</button>
+          <div className="logo">Trade<b>Stack</b> <span style={{color:"#444",fontSize:".6rem",fontWeight:300}}>/ Admin</span></div>
+          <div className="sbadge"><div className="sdot"/>S{SPRINT.num} · Day {SPRINT.dayElapsed}/{SPRINT.dayTotal}</div>
+        </div>
+
+        <div className={`overlay ${menuOpen?"show":""}`} onClick={()=>setMenuOpen(false)}/>
+
+        <div className="layout">
+          <div className={`sidebar ${menuOpen?"open":""}`}>
+            <div className="snlbl">Scrum Events</div>
+            {NAV.map(n=>(
+              <button key={n.id} className={`snbtn ${view===n.id?"on":""}`} onClick={()=>navigate(n.id)}>
+                <span className="snbi">{n.icon}</span>
+                <span className="snbl">{n.label}</span>
+                {n.count>0&&<span className="sncnt">{n.count}</span>}
+              </button>
+            ))}
+          </div>
+
+          <div className="main">
+
+            {view==="overview"&&<>
+              <div className="sh"><div className="st">Sprint {SPRINT.num} Overview</div><div className="sl"/></div>
+              <div className="ss">{SPRINT.start} → {SPRINT.end} · You are Scrum Master</div>
+              <div className="g4" style={{marginBottom:"1rem"}}>
+                {[
+                  {v:"7",l:"Active Users",d:"+2 this week",up:true},
+                  {v:`${donePts}/${totalPts}`,l:"Story Points",d:`${sprintItems.filter(b=>b.status==="Done").length}/${sprintItems.length} tickets`,up:null},
+                  {v:String(pendingRev),l:"Awaiting Review",d:"Need your decision",up:false},
+                  {v:String(backlog.filter(b=>!b.sprint).length),l:"Backlog Items",d:"Sprint 2 ready",up:null},
+                ].map((s,i)=>(
+                  <div key={i} className="card">
+                    <div className="stat-v">{s.v}</div>
+                    <div className="stat-l">{s.l}</div>
+                    <div className={`stat-d ${s.up===true?"dup":s.up===false?"ddn":"dfl"}`}>{s.d}</div>
+                  </div>
+                ))}
+              </div>
+              <div className="card" style={{marginBottom:"1rem"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:".4rem"}}>
+                  <span style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:".72rem",color:"#888"}}>Sprint Progress</span>
+                  <span style={{fontSize:".65rem",color:"#e07b39"}}>{pct}% elapsed · {Math.round((donePts/totalPts)*100)}% done</span>
+                </div>
+                <div className="sbar-wrap"><div className="sbar-fill" style={{width:`${pct}%`}}/></div>
+                <div className="tick-row">
+                  {sprintItems.map(t=>(
+                    <div key={t.id} className="tick" style={{background:t.status==="Done"?"#4ade80":t.status==="In Progress"?"#e07b39":"#2a2a2a"}} title={t.title}/>
+                  ))}
+                </div>
+              </div>
+              <div className="g2">
+                <div className="card">
+                  <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:".72rem",color:"#888",marginBottom:".65rem"}}>Today's Blockers</div>
+                  {blockers.length===0
+                    ? <div style={{color:"#4ade80",fontSize:".7rem"}}>✓ No blockers</div>
+                    : blockers.map((a,i)=><div key={i} className="blk-item">🚧 <strong style={{color:"#f87171"}}>{a.name}:</strong> {a.blocker}</div>)}
+                </div>
+                <div className="card">
+                  <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:".72rem",color:"#888",marginBottom:".65rem"}}>Sprint Goals</div>
+                  {sprintItems.map(t=>(
+                    <div key={t.id} style={{display:"flex",alignItems:"flex-start",gap:".45rem",marginBottom:".35rem"}}>
+                      <span style={{fontSize:".7rem",flexShrink:0}}>{t.status==="Done"?"✅":t.status==="In Progress"?"🔄":"⬜"}</span>
+                      <span style={{fontSize:".7rem",color:t.status==="Done"?"#4ade80":"#888",lineHeight:1.4}}>{t.title}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>}
+
+            {view==="standup"&&<>
+              <div className="sh"><div className="st">Daily Standup</div><div className="sl"/></div>
+              <div className="ss">Each agent reports: what they did, doing, and what's blocking them</div>
+              <div className="sdup-tabs">
+                {STANDUPS.map((s,i)=><button key={i} className={`sdup-tab ${sdDay===i?"on":""}`} onClick={()=>setSdDay(i)}>{s.date}</button>)}
+              </div>
+              <div className="card">
+                {STANDUPS[sdDay].agents.map((a,i)=>(
+                  <div key={i} className="sr">
+                    <div className={`si ${a.s==="green"?"sig":a.s==="amber"?"sia":"sir"}`}/>
+                    <div className="sava">{a.emoji}</div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div className="san">{a.name} Agent</div>
+                      <div className="sau">{a.update}</div>
+                      {a.blocker&&<div className="sblk">🚧 {a.blocker}</div>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>}
+
+            {view==="board"&&<>
+              <div className="sh"><div className="st">Sprint Board</div><div className="sl"/></div>
+              <div className="ss">Sprint {SPRINT.num} — scroll right to see all columns</div>
+              <div className="board-wrap">
+                <div className="board">
+                  {["Backlog","In Progress","Review","Done"].map(col=>{
+                    const items = backlog.filter(b=>b.sprint===1&&b.status===col);
+                    return (
+                      <div key={col} className="bcol">
+                        <div className="bcolh">{col}<span>{items.length}</span></div>
+                        {items.map(t=>(
+                          <div key={t.id} className="ticket">
+                            <div className="t-id">{t.id}</div>
+                            <div className="t-title">{t.title}</div>
+                            <div className="t-meta">
+                              <span className={`pill ${PC[t.priority]}`}>{t.priority}</span>
+                              <span className={`pill ${TC[t.type]}`}>{t.type}</span>
+                              <span className="pill p-x">{t.pts}pt</span>
+                            </div>
+                            <div className="t-src">via {t.source}</div>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </>}
+
+            {view==="review"&&<>
+              <div className="sh"><div className="st">Review Queue</div><div className="sl"/></div>
+              <div className="ss">Every agent output lands here. You approve, reject, or edit before anything happens.</div>
+              {REVIEW_ITEMS.map(item=>{
+                const state = rstates[item.id];
+                return (
+                  <div key={item.id} className="ri">
+                    <div className="ri-hdr">
+                      <div style={{fontSize:"1.1rem"}}>{item.emoji}</div>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div className="ri-title">{item.title}</div>
+                        <div className="ri-meta">
+                          <span className="pill p-x">{item.agent} Agent</span>
+                          <span className={`pill ${item.urgency==="High"?"p-r":"p-x"}`}>{item.urgency}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="ri-pre">{item.preview}</div>
+                    <div className="ri-acts">
+                      {!state||state==="Pending"
+                        ? <><button className="bapp" onClick={()=>setRstates(s=>({...s,[item.id]:"Approved"}))}>✓ Approve</button>
+                            <button className="brej" onClick={()=>setRstates(s=>({...s,[item.id]:"Rejected"}))}>✗ Reject</button>
+                            <button className="bedt">Edit</button></>
+                        : <span style={{fontSize:".65rem",color:state==="Approved"?"#4ade80":"#f87171"}}>
+                            {state==="Approved"?"✓ Approved — queued for action":"✗ Rejected — returned to agent"}
+                          </span>}
+                    </div>
+                  </div>
+                );
+              })}
+            </>}
+
+            {view==="planning"&&<>
+              <div className="sh"><div className="st">Sprint Planning</div><div className="sl"/></div>
+              <div className="ss">Select backlog items for Sprint 2. You set scope — agents execute.</div>
+              <div className="card" style={{marginBottom:"1rem"}}>
+                <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:".72rem",color:"#888",marginBottom:".25rem"}}>
+                  Sprint 2 · Selected: {selected.reduce((a,id)=>a+(backlog.find(b=>b.id===id)?.pts||0),0)} story points
+                </div>
+                <div style={{fontSize:".68rem",color:"#555"}}>Sprint 1 velocity: {donePts} pts. Match or go slightly under.</div>
+              </div>
+              {backlog.filter(b=>!b.sprint).sort((a,b)=>a.priority.localeCompare(b.priority)).map(item=>(
+                <div key={item.id} className={`pi ${selected.includes(item.id)?"sel":""}`} onClick={()=>toggleSel(item.id)}>
+                  <div className="pichk">{selected.includes(item.id)?"✓":""}</div>
+                  <div className="pi-id">{item.id}</div>
+                  <div className="pi-title">{item.title}</div>
+                  <span className={`pill ${PC[item.priority]}`}>{item.priority}</span>
+                  <div className="pi-pts">{item.pts}pt</div>
+                </div>
+              ))}
+              {selected.length>0&&<button className="btn-run" style={{marginTop:".75rem"}} onClick={commitSprint}>Commit {selected.length} Items to Sprint 2 →</button>}
+            </>}
+
+            {view==="retro"&&<>
+              <div className="sh"><div className="st">Retrospective</div><div className="sl"/></div>
+              <div className="ss">Sprint {SPRINT.num} reflection — what worked, what broke, what changes next sprint</div>
+              <div className="retro-grid">
+                {RETRO.map((col,i)=>(
+                  <div key={i} className="rcol">
+                    <div className={`rcol-h ${col.cls}`}>{col.head}</div>
+                    {col.items.map((item,j)=><div key={j} className="ritem">{item}</div>)}
+                  </div>
+                ))}
+              </div>
+            </>}
+
+            {view==="backlog"&&<>
+              <div className="sh"><div className="st">Product Backlog</div><div className="sl"/></div>
+              <div className="ss">All requirements ordered by priority. Agents add items continuously.</div>
+              {backlog.sort((a,b)=>a.priority.localeCompare(b.priority)).map(item=>(
+                <div key={item.id} style={{display:"flex",alignItems:"center",gap:".5rem",padding:".55rem .7rem",background:"#111",border:"1px solid #1c1c1c",borderRadius:"3px",marginBottom:".35rem",flexWrap:"wrap"}}>
+                  <span style={{fontSize:".58rem",color:"#444",width:"40px",flexShrink:0}}>{item.id}</span>
+                  <span style={{fontFamily:"'Archivo',sans-serif",fontWeight:600,fontSize:".72rem",color:"#ccc",flex:1,minWidth:"120px"}}>{item.title}</span>
+                  <span className={`pill ${PC[item.priority]}`}>{item.priority}</span>
+                  <span className={`pill ${TC[item.type]}`}>{item.type}</span>
+                  <span className={`pill ${SC[item.status]}`}>{item.status}</span>
+                  <span style={{fontSize:".62rem",color:"#555"}}>{item.pts}pt</span>
+                </div>
+              ))}
+            </>}
+
+            {view==="flow"&&<>
+              <div className="sh"><div className="st">Circular Agent Loop</div><div className="sl"/></div>
+              <div className="ss">Agents feed each other every sprint — nothing terminates, everything loops back into the backlog</div>
+              <div className="card">
+                <div className="flow">
+                  {FLOW_NODES.map((n,i)=>
+                    n.arrow
+                      ? <div key={i} className="farrow">{n.arrow}</div>
+                      : <div key={i} className={`fn ${n.act?"act":""} ${n.own?"own":""}`}>
+                          <div className="fn-e">{n.e}</div>
+                          <div className="fn-n">{n.n}</div>
+                        </div>
+                  )}
+                </div>
+              </div>
+              <div className="g2" style={{marginTop:".75rem"}}>
+                {[
+                  {title:"Feeds INTO the loop",items:["User feedback → Support → Product → Backlog","Market changes → Research → Backlog + Outreach queue","User financials → Finance → Strategy → Dashboard updates","Platform metrics → Analytics → Your daily standup"]},
+                  {title:"Feeds OUT of the loop",items:["Approved outreach emails → sent to prospects","Approved feature specs → Sprint backlog → Development","Approved financial alerts → user dashboard","Approved intel → competitor tabs refresh"]},
+                ].map((col,i)=>(
+                  <div key={i} className="card">
+                    <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:".72rem",color:"#888",marginBottom:".65rem"}}>{col.title}</div>
+                    {col.items.map((it,j)=><div key={j} style={{display:"flex",gap:".4rem",fontSize:".7rem",color:"#777",lineHeight:1.55,marginBottom:".3rem"}}><span style={{color:"#333"}}>→</span>{it}</div>)}
+                  </div>
+                ))}
+              </div>
+            </>}
+
+            {view==="ai"&&<>
+              <div className="sh"><div className="st">AI Scrum Assistant</div><div className="sl"/></div>
+              <div className="ss">Ask anything about sprint health, priorities, or process. You are Scrum Master — this is your advisor.</div>
+              <div className="card" style={{marginBottom:".75rem"}}>
+                <div style={{fontFamily:"'Archivo',sans-serif",fontWeight:700,fontSize:".72rem",color:"#888",marginBottom:".5rem"}}>Sprint Context (auto-loaded)</div>
+                <div style={{fontSize:".68rem",color:"#555",lineHeight:1.8}}>
+                  Sprint {SPRINT.num} · Day {SPRINT.dayElapsed}/{SPRINT.dayTotal} · {SPRINT.dayTotal-SPRINT.dayElapsed}d left<br/>
+                  Velocity: {donePts}/{totalPts} pts · {sprintItems.filter(b=>b.status==="Done").length}/{sprintItems.length} tickets done<br/>
+                  Review queue: {pendingRev} pending · Blockers: {blockers.length} active
+                </div>
+              </div>
+              <textarea className="ai-in" placeholder={"Examples:\n• What should I handle first in my review queue?\n• Can we still hit sprint goals with time left?\n• How should I structure Sprint 2?\n• The competitor tab is causing churn — fastest fix?"} value={aiIn} onChange={e=>setAiIn(e.target.value)}/>
+              <div style={{display:"flex",justifyContent:"flex-end",marginTop:".5rem"}}>
+                <button className="btn-run" disabled={aiRun||!aiIn.trim()} onClick={runAI}>{aiRun?"Thinking…":"▶ Ask Assistant"}</button>
+              </div>
+              {(aiRun||aiOut)&&<div className="ai-out">{aiRun?<span style={{color:"#e07b39"}}>Processing…</span>:aiOut}</div>}
+            </>}
+
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
