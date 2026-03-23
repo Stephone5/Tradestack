@@ -151,12 +151,12 @@ export default function App() {
 
   // ── AUTH LISTENER ──────────────────────────────────────────────────────────
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setAuthLoading(false);
-    });
+    // onAuthStateChange handles both normal sessions and OAuth hash-token redirects
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => setSession(session)
+      (_event, session) => {
+        setSession(session);
+        setAuthLoading(false);
+      }
     );
     return () => subscription.unsubscribe();
   }, []);
