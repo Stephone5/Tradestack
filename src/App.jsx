@@ -29,13 +29,13 @@ body{background:#0e0e0e;}
 .hdr{background:#141414;border-bottom:2px solid #f5a623;padding:0 1rem;display:flex;align-items:center;justify-content:space-between;height:52px;position:sticky;top:0;z-index:100;}
 .logo{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:1.3rem;letter-spacing:.08em;text-transform:uppercase;color:#f5a623;}
 .logo span{color:#e8e0d4;}
-.biz-tag{font-family:'Barlow Condensed',sans-serif;font-size:.7rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:#666;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.biz-tag{font-family:'Barlow Condensed',sans-serif;font-size:.7rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:#ccc;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 
 /* TABS */
 .tabs{display:flex;background:#111;border-bottom:1px solid #222;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
 .tabs::-webkit-scrollbar{display:none;}
-.tab{padding:.8rem 1rem;font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:#555;cursor:pointer;border:none;border-bottom:3px solid transparent;background:none;white-space:nowrap;flex-shrink:0;margin-bottom:-1px;transition:color .15s,border-color .15s;-webkit-tap-highlight-color:transparent;}
-.tab:hover{color:#aaa;}
+.tab{padding:.8rem 1rem;font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:#ccc;cursor:pointer;border:none;border-bottom:3px solid transparent;background:none;white-space:nowrap;flex-shrink:0;margin-bottom:-1px;transition:color .15s,border-color .15s;-webkit-tap-highlight-color:transparent;}
+.tab:hover{color:#ccc;}
 .tab.on{color:#f5a623;border-bottom-color:#f5a623;}
 .tab:disabled{opacity:.3;cursor:not-allowed;}
 
@@ -57,7 +57,7 @@ body{background:#0e0e0e;}
 
 /* FORM */
 .fg{display:flex;flex-direction:column;gap:.3rem;}
-label{font-family:'Barlow Condensed',sans-serif;font-size:.68rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#888;}
+label{font-family:'Barlow Condensed',sans-serif;font-size:.68rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#ddd;}
 input,select,textarea{background:#1a1a1a;border:1px solid #2a2a2a;color:#e8e0d4;padding:.7rem .85rem;font-family:'Barlow',sans-serif;font-size:1rem;font-weight:400;outline:none;border-radius:3px;width:100%;-webkit-appearance:none;appearance:none;transition:border-color .15s;}
 input:focus,select:focus,textarea:focus{border-color:#f5a623;}
 select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right .8rem center;padding-right:2rem;}
@@ -66,9 +66,9 @@ textarea{resize:vertical;min-height:80px;}
 .btn{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:.8rem;letter-spacing:.14em;text-transform:uppercase;padding:.8rem 1.5rem;border:none;cursor:pointer;border-radius:3px;touch-action:manipulation;transition:all .15s;-webkit-tap-highlight-color:transparent;}
 .bp{background:#f5a623;color:#0e0e0e;width:100%;}
 .bp:hover{background:#ffc04a;}
-.bp:disabled{background:#333;color:#555;cursor:not-allowed;}
-.bg{background:transparent;color:#888;border:1px solid #333;}
-.bg:hover{border-color:#555;color:#aaa;}
+.bp:disabled{background:#333;color:#ccc;cursor:not-allowed;}
+.bg{background:transparent;color:#ddd;border:1px solid #333;}
+.bg:hover{border-color:#ccc;color:#ccc;}
 @media(min-width:540px){.bp{width:auto;}}
 .form-end{display:flex;justify-content:stretch;margin-top:1.1rem;}
 @media(min-width:540px){.form-end{justify-content:flex-end;}}
@@ -79,14 +79,14 @@ textarea{resize:vertical;min-height:80px;}
 @media(min-width:900px){.canvas{grid-template-columns:repeat(5,1fr);}}
 .cc{background:#141414;padding:.85rem;min-height:90px;}
 .cc-lbl{font-family:'Barlow Condensed',sans-serif;font-size:.62rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:#f5a623;margin-bottom:.45rem;}
-.cc-val{font-size:.8rem;line-height:1.5;color:#bbb;white-space:pre-wrap;}
+.cc-val{font-size:.8rem;line-height:1.5;color:#ddd;white-space:pre-wrap;}
 
 /* FIN CARDS */
 .fc{background:#141414;border:1px solid #222;padding:.9rem;border-radius:3px;}
-.fc-lbl{font-family:'Barlow Condensed',sans-serif;font-size:.63rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#666;margin-bottom:.25rem;}
+.fc-lbl{font-family:'Barlow Condensed',sans-serif;font-size:.63rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#ccc;margin-bottom:.25rem;}
 .fc-val{font-family:'Barlow Condensed',sans-serif;font-size:1.6rem;font-weight:700;line-height:1;}
 .pos{color:#4caf82;}.neg{color:#e05252;}.neu{color:#e8e0d4;}
-.fc-sub{font-size:.7rem;color:#555;margin-top:.2rem;}
+.fc-sub{font-size:.7rem;color:#ccc;margin-top:.2rem;}
 
 /* INSIGHT BLOCKS */
 .ib{background:#141414;border-left:3px solid #f5a623;padding:.8rem .95rem;margin-bottom:.6rem;border-radius:0 3px 3px 0;}
@@ -102,25 +102,25 @@ textarea{resize:vertical;min-height:80px;}
 .badge{font-family:'Barlow Condensed',sans-serif;font-size:.6rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:.18rem .45rem;border-radius:2px;flex-shrink:0;}
 .bH{background:#3a1a1a;color:#e05252;}.bM{background:#2a2a1a;color:#f5a623;}.bL{background:#1a2a1a;color:#4caf82;}
 .cmp-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:.4rem;margin-bottom:.65rem;}
-.cs-lbl{font-family:'Barlow Condensed',sans-serif;font-size:.58rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#555;margin-bottom:.1rem;}
-.cs-val{font-size:.8rem;color:#bbb;}
-.cmp-insight{font-size:.76rem;color:#777;line-height:1.5;border-top:1px solid #1e1e1e;padding-top:.6rem;}
+.cs-lbl{font-family:'Barlow Condensed',sans-serif;font-size:.58rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#ccc;margin-bottom:.1rem;}
+.cs-val{font-size:.8rem;color:#ddd;}
+.cmp-insight{font-size:.76rem;color:#ddd;line-height:1.5;border-top:1px solid #1e1e1e;padding-top:.6rem;}
 
 /* LOADING */
-.loader{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:3rem 1rem;gap:.65rem;color:#555;}
+.loader{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:3rem 1rem;gap:.65rem;color:#ccc;}
 .lbar{width:140px;height:2px;background:#222;position:relative;overflow:hidden;}
 .lbar::after{content:'';position:absolute;left:-50%;width:50%;height:100%;background:#f5a623;animation:lslide 1.2s infinite;}
 @keyframes lslide{from{left:-50%;}to{left:100%;}}
 .llbl{font-family:'Barlow Condensed',sans-serif;font-size:.68rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;}
-.empty{text-align:center;padding:2.5rem 1rem;color:#444;}
+.empty{text-align:center;padding:2.5rem 1rem;color:#999;}
 .regen{display:flex;justify-content:flex-end;margin-top:.65rem;}
 
 /* LOGIN SCREEN */
 .login-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:80vh;gap:1.25rem;padding:2rem 1rem;text-align:center;}
-.login-eyebrow{font-family:'Barlow Condensed',sans-serif;font-size:.65rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:#555;}
+.login-eyebrow{font-family:'Barlow Condensed',sans-serif;font-size:.65rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:#ccc;}
 .login-title{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:1.6rem;letter-spacing:.04em;text-transform:uppercase;color:#e8e0d4;line-height:1.1;}
 .login-title span{color:#f5a623;}
-.login-sub{font-size:.82rem;color:#555;max-width:280px;line-height:1.6;}
+.login-sub{font-size:.82rem;color:#ccc;max-width:280px;line-height:1.6;}
 .btn-google{display:flex;align-items:center;gap:.65rem;background:#f5a623;color:#0e0e0e;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:.82rem;letter-spacing:.1em;text-transform:uppercase;padding:.85rem 1.6rem;border:none;border-radius:3px;cursor:pointer;transition:background .15s;margin-top:.5rem;}
 .btn-google:hover{background:#ffc04a;}
 .btn-google svg{width:18px;height:18px;flex-shrink:0;}
@@ -174,7 +174,7 @@ export default function App() {
     return () => { subscription.unsubscribe(); clearTimeout(timeout); };
   }, []);
 
-  // ââ LOAD SAVED PROFILE ON LOGIN ââââââââââââââââââââââââââââââââââââââââââââ
+  // ── LOAD SAVED PROFILE ON LOGIN ────────────────────────────────────────────
   useEffect(() => {
     if (!session) return;
     supabase.from('businesses').select('*')
@@ -203,10 +203,10 @@ export default function App() {
   const ctx = () => `Business:${p.bizName}\nTrade:${p.trade}\nLocation:${p.location}\nYears:${p.yearsOp}\nEmployees:${p.employees}\nRevenue:$${p.annualRev}\nCOGS:$${p.cogs}\nOpEx:$${p.opEx}\nNetIncome:$${p.netIncome}\nTopService:${p.topService}\nAvgJob:$${p.avgJobValue}\nPains:${p.painPoints}`;
   const set = k => e => setP(v=>({...v,[k]:e.target.value}));
 
-  // ââ AI GENERATORS ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+  // ── AI GENERATORS ──────────────────────────────────────────────────────────
   const genCanvas = async () => {
     setCLoading(true);
-    const r = await callClaude(`You are a business strategist. Return ONLY JSON with keys: problem,solution,uvp,unfair,segments,metrics,channels,revenue,cost. Values: 2-4 bullet points using â¢. No markdown.`,`Canvas for:\n${ctx()}`);
+    const r = await callClaude(`You are a business strategist. Return ONLY JSON with keys: problem,solution,uvp,unfair,segments,metrics,channels,revenue,cost. Values: 2-4 bullet points using •. No markdown.`,`Canvas for:\n${ctx()}`);
     setCanvas(jp(r)||{});
     setCLoading(false);
   };
@@ -223,7 +223,7 @@ export default function App() {
     setCompLoading(false);
   };
 
-  // ââ AUTH FUNCTIONS âââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+  // ── AUTH FUNCTIONS ─────────────────────────────────────────────────────────
   const signInWithGoogle = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
@@ -264,7 +264,7 @@ export default function App() {
     setTab("setup");
   };
 
-  // ââ SUBMIT âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+  // ── SUBMIT ─────────────────────────────────────────────────────────────────
   const submit = async () => {
     setSubmitted(true);
     setTab("canvas");
@@ -279,20 +279,20 @@ export default function App() {
   const gm    = gross&&p.annualRev  ? ((parseFloat(gross)/parseFloat(p.annualRev))*100).toFixed(1) : null;
   const nm    = p.netIncome&&p.annualRev ? ((parseFloat(p.netIncome)/parseFloat(p.annualRev))*100).toFixed(1) : null;
 
-  // ââ AUTH LOADING STATE âââââââââââââââââââââââââââââââââââââââââââââââââââââ
+  // ── AUTH LOADING STATE ─────────────────────────────────────────────────────
   if (authLoading) return (
     <>
       <style>{CSS}</style>
       <div className="app">
         <div className="hdr"><div className="logo">Trade<span>Stack</span></div></div>
         <div className="login-wrap">
-          <div className="loader"><div className="lbar"/><div className="llbl">Loadingâ¦</div></div>
+          <div className="loader"><div className="lbar"/><div className="llbl">Loading…</div></div>
         </div>
       </div>
     </>
   );
 
-  // ââ LOGIN GATE âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+  // ── LOGIN GATE ─────────────────────────────────────────────────────────────
   if (!session) return (
     <>
       <style>{CSS}</style>
@@ -301,7 +301,7 @@ export default function App() {
         <div className="login-wrap">
           <div className="login-eyebrow">Business Intelligence for Trades</div>
           <div className="login-title">Know exactly where your<br/><span>money is going.</span></div>
-          <div className="login-sub">Financial health, competitor intel, and a full business plan â built for plumbers, electricians, and contractors.</div>
+          <div className="login-sub">Financial health, competitor intel, and a full business plan — built for plumbers, electricians, and contractors.</div>
           <button className="btn-google" onClick={signInWithGoogle}>
             <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
@@ -316,7 +316,7 @@ export default function App() {
     </>
   );
 
-  // ââ MAIN APP âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+  // ── MAIN APP ───────────────────────────────────────────────────────────────
   return (
     <>
       <style>{CSS}</style>
@@ -343,7 +343,7 @@ export default function App() {
               <div className="fg"><label>Business Name</label><input value={p.bizName} onChange={set("bizName")} placeholder="e.g. Garcia Electric LLC"/></div>
               <div className="fg"><label>Trade / Specialty</label>
                 <select value={p.trade} onChange={set("trade")}>
-                  <option value="">Selectâ¦</option>
+                  <option value="">Select…</option>
                   {["Plumbing","Electrical","HVAC","General Contracting","Roofing","Landscaping","Painting","Carpentry","Flooring","Other"].map(t=><option key={t}>{t}</option>)}
                 </select>
               </div>
@@ -360,17 +360,17 @@ export default function App() {
               <div className="fg"><label>Cost of Goods ($)</label><input type="number" inputMode="numeric" value={p.cogs} onChange={set("cogs")} placeholder="180000"/></div>
               <div className="fg"><label>Operating Expenses ($)</label><input type="number" inputMode="numeric" value={p.opEx} onChange={set("opEx")} placeholder="95000"/></div>
               <div className="fg"><label>Net Income ($)</label><input type="number" inputMode="numeric" value={p.netIncome} onChange={set("netIncome")} placeholder="145000"/></div>
-              <div className="fg full"><label>Biggest Pain Points</label><textarea value={p.painPoints} onChange={set("painPoints")} placeholder="Chasing invoices, no-shows, slow seasonsâ¦"/></div>
+              <div className="fg full"><label>Biggest Pain Points</label><textarea value={p.painPoints} onChange={set("painPoints")} placeholder="Chasing invoices, no-shows, slow seasons…"/></div>
             </div>
-            <div className="form-end"><button className="btn bp" onClick={submit} disabled={!p.bizName||!p.trade||!p.annualRev}>Generate My Profile â</button></div>
+            <div className="form-end"><button className="btn bp" onClick={submit} disabled={!p.bizName||!p.trade||!p.annualRev}>Generate My Profile →</button></div>
           </>}
 
           {tab==="canvas"&&<>
-            <div className="stitle">Lean Canvas â {p.bizName}</div>
+            <div className="stitle">Lean Canvas — {p.bizName}</div>
             {cLoading
-              ? <div className="loader"><div className="lbar"/><div className="llbl">Building canvasâ¦</div></div>
-              : <><div className="canvas">{CELLS.map(c=><div key={c.k} className="cc"><div className="cc-lbl">{c.l}</div><div className="cc-val">{canvas[c.k]||<span style={{color:"#333"}}>â</span>}</div></div>)}</div>
-                  <div className="regen"><button className="btn bg" onClick={genCanvas}>âº Regenerate</button></div></>}
+              ? <div className="loader"><div className="lbar"/><div className="llbl">Building canvas…</div></div>
+              : <><div className="canvas">{CELLS.map(c=><div key={c.k} className="cc"><div className="cc-lbl">{c.l}</div><div className="cc-val">{canvas[c.k]||<span style={{color:"#999"}}>—</span>}</div></div>)}</div>
+                  <div className="regen"><button className="btn bg" onClick={genCanvas}>↺ Regenerate</button></div></>}
           </>}
 
           {tab==="financial"&&<>
@@ -382,22 +382,22 @@ export default function App() {
             </div>
             <div className="stitle">Drains & Opportunities</div>
             {iLoading
-              ? <div className="loader"><div className="lbar"/><div className="llbl">Analyzingâ¦</div></div>
+              ? <div className="loader"><div className="lbar"/><div className="llbl">Analyzing…</div></div>
               : insights.length===0
                 ? <div className="empty"><p>No analysis yet</p></div>
                 : <>{insights.map((ins,i)=>(
                     <div key={i} className={`ib ${ins.type==="drain"?"rd":"gr"}`}>
-                      <div className={`ib-type ${ins.type==="drain"?"drain":"opp"}`}>{ins.type==="drain"?"â¬ Drain":"â¬ Opportunity"} â {ins.title}</div>
+                      <div className={`ib-type ${ins.type==="drain"?"drain":"opp"}`}>{ins.type==="drain"?"⬇ Drain":"⬆ Opportunity"} — {ins.title}</div>
                       <div className="ib-text">{ins.detail}</div>
                     </div>
                   ))}
-                  <div className="regen"><button className="btn bg" onClick={genInsights}>âº Refresh</button></div></>}
+                  <div className="regen"><button className="btn bg" onClick={genInsights}>↺ Refresh</button></div></>}
           </>}
 
           {tab==="competitors"&&<>
-            <div className="stitle">Competitors â {p.trade}</div>
+            <div className="stitle">Competitors — {p.trade}</div>
             {compLoading
-              ? <div className="loader"><div className="lbar"/><div className="llbl">Researchingâ¦</div></div>
+              ? <div className="loader"><div className="lbar"/><div className="llbl">Researching…</div></div>
               : comps.length===0
                 ? <div className="empty"><p>No data yet</p></div>
                 : <>{comps.map((c,i)=>(
@@ -412,12 +412,12 @@ export default function App() {
                         <div><div className="cs-lbl">Reviews</div><div className="cs-val">{c.reviews}</div></div>
                       </div>
                       <div className="cmp-insight">
-                        <strong style={{color:"#888",fontFamily:"'Barlow Condensed',sans-serif",fontSize:".6rem",letterSpacing:".1em",textTransform:"uppercase"}}>Weakness: </strong>{c.weakness}<br/><br/>
+                        <strong style={{color:"#bbb",fontFamily:"'Barlow Condensed',sans-serif",fontSize:".6rem",letterSpacing:".1em",textTransform:"uppercase"}}>Weakness: </strong>{c.weakness}<br/><br/>
                         <strong style={{color:"#f5a623",fontFamily:"'Barlow Condensed',sans-serif",fontSize:".6rem",letterSpacing:".1em",textTransform:"uppercase"}}>Your Move: </strong>{c.insight}
                       </div>
                     </div>
                   ))}
-                  <div className="regen"><button className="btn bg" onClick={genComps}>âº Refresh</button></div></>}
+                  <div className="regen"><button className="btn bg" onClick={genComps}>↺ Refresh</button></div></>}
           </>}
         </div>
       </div>
