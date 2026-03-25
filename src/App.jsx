@@ -28,6 +28,9 @@ body{background:#0e0e0e;}
 .hdr{background:#141414;border-bottom:2px solid #f5a623;padding:0 1rem;display:flex;align-items:center;justify-content:space-between;height:52px;position:sticky;top:0;z-index:100;}
 .logo{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:1.3rem;letter-spacing:.08em;text-transform:uppercase;color:#f5a623;}
 .logo span{color:#e8e0d4;}
+.tagline{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:.75rem;letter-spacing:.1em;text-transform:uppercase;color:#888;margin-left:1rem;display:none;}
+.tagline-ai{color:#f5a623;}
+@media(min-width:768px){.tagline{display:inline;}}
 .biz-tag{font-family:'Barlow Condensed',sans-serif;font-size:.7rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:#666;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .tabs{display:flex;background:#111;border-bottom:1px solid #222;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
 .tabs::-webkit-scrollbar{display:none;}
@@ -84,6 +87,9 @@ textarea{resize:vertical;min-height:80px;}
 .empty{text-align:center;padding:2.5rem 1rem;color:#444;}
 .regen{display:flex;justify-content:flex-end;margin-top:.65rem;}
 .login-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:80vh;gap:1.25rem;padding:2rem 1rem;text-align:center;}
+.footer-tagline{text-align:center;padding:2rem 1rem;margin-top:3rem;border-top:1px solid #222;}
+.footer-tagline-text{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:.9rem;letter-spacing:.12em;text-transform:uppercase;color:#666;}
+.footer-tagline-ai{color:#f5a623;}
 @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.2;}}
 `;
 
@@ -237,7 +243,10 @@ export default function App() {
       <style>{CSS}</style>
       <div className="app">
         <div className="hdr">
-          <div className="logo">Trade<span>Stack</span></div>
+          <div style={{display:'flex',alignItems:'center'}}>
+            <div className="logo">Trade<span>Stack</span></div>
+            <div className="tagline">Obt<span className="tagline-ai">ai</span>n what others overlook</div>
+          </div>
           <div style={{display:'flex',alignItems:'center',gap:'.75rem'}}>
             {submitted && <div className="biz-tag">{p.bizName}</div>}
             <button className="btn bg" style={{padding:'.4rem .85rem',fontSize:'.65rem'}} onClick={signOut}>Sign Out</button>
@@ -302,6 +311,10 @@ export default function App() {
                   ))}
                   <div className="regen"><button className="btn bg" onClick={genInsights}>Refresh</button></div></>}
           </>}
+        </div>
+
+        <div className="footer-tagline">
+          <div className="footer-tagline-text">Obt<span className="footer-tagline-ai">ai</span>n what others overlook</div>
         </div>
       </div>
     </>
