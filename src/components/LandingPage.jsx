@@ -60,7 +60,7 @@ body{background:#0e0e0e;}
 .lp-plan-price span{font-size:.75rem;font-weight:400;color:#555;letter-spacing:.06em;}
 .lp-plan-items{list-style:none;display:flex;flex-direction:column;gap:.7rem;margin-bottom:1.5rem;}
 .lp-plan-items li{font-size:.85rem;color:#777;padding-left:1.1rem;position:relative;line-height:1.4;}
-.lp-plan-items li::before{content:'\2014';position:absolute;left:0;color:#333;}
+.lp-plan-items li::before{content:'\\2014';position:absolute;left:0;color:#333;}
 .lp-plan--premium .lp-plan-items li{color:#bbb;}
 .lp-plan--premium .lp-plan-items li::before{color:#f5a623;}
 .lp-plan-note{font-size:.75rem;color:#555;font-style:italic;line-height:1.5;margin-bottom:1.25rem;}
