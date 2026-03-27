@@ -377,6 +377,15 @@ export default function App() {
         painPoints:  data.pain_points || "",
         phoneNumber: data.phone_number|| "",
         timezone:    data.timezone    || Intl.DateTimeFormat().resolvedOptions().timeZone,
+        problem:     data.canvas_problem   || "",
+        solution:    data.canvas_solution  || "",
+        uvp:         data.canvas_uvp       || "",
+        unfair:      data.canvas_unfair    || "",
+        segments:    data.canvas_segments  || "",
+        metrics:     data.canvas_metrics   || "",
+        channels:    data.canvas_channels  || "",
+        revenue:     data.canvas_revenue   || "",
+        cost:        data.canvas_cost      || "",
       });
       setSubmitted(true);
     }
