@@ -36,11 +36,12 @@ body{background:#0e0e0e;}
 .app{min-height:100vh;background:#0e0e0e;color:#e8e0d4;font-family:'Barlow',sans-serif;font-weight:300;}
 
 /* HEADER */
-.hdr{background:#141414;border-bottom:2px solid #f5a623;padding:0 1rem;display:flex;align-items:center;justify-content:space-between;height:52px;position:sticky;top:0;z-index:100;}
+.hdr{background:#141414;border-bottom:2px solid #f5a623;padding:0 1rem;display:flex;align-items:center;justify-content:space-between;height:52px;position:sticky;top:0;z-index:100;position:relative;}
 .logo{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:1.3rem;letter-spacing:.08em;text-transform:uppercase;color:#f5a623;}
 .logo span{color:#e8e0d4;}
 .biz-tag{font-family:'Barlow Condensed',sans-serif;font-size:.7rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:#666;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .hdr-right{display:flex;align-items:center;gap:.5rem;}
+.hdr-tagline{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:#e8e0d4;position:absolute;left:50%;transform:translateX(-50%);white-space:nowrap;}
 .premium-badge{font-family:'Barlow Condensed',sans-serif;font-size:.6rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;background:#f5a623;color:#0e0e0e;padding:.18rem .5rem;border-radius:2px;}
 
 /* TABS */
@@ -317,8 +318,9 @@ export default function App() {
   }, [session]);
 
   async function loadProfile() {
-    const { data } = await supabase.from('businesses')
-      .select('*').eq('user_id', session.user.id).single();
+    const { data, error } = await supabase.from('businesses')
+      .select('*').eq('user_id', session.user.id).maybeSingle();
+    if (error) { console.error('loadProfile error:', error); return; }
     if (data) {
       setP({
         bizName:     data.biz_name    || "",
@@ -413,7 +415,7 @@ export default function App() {
   const saveProfile = useCallback(async () => {
     if (!session) return;
     setSaving(true);
-    await supabase.from('businesses').upsert({
+    const { error } = await supabase.from('businesses').upsert({
       user_id:      session.user.id,
       biz_name:     p.bizName,
       trade:        p.trade,
@@ -431,8 +433,26 @@ export default function App() {
       timezone:     p.timezone,
       updated_at:   new Date().toISOString(),
     }, { onConflict: 'user_id' });
+    if (error) console.error('saveProfile error:', error);
     setSaving(false);
   }, [session, p]);
+
+  // ── AUTO-SAVE PROFILE (debounced) ────────────────────────────────────────
+  useEffect(() => {
+    if (!session || !submitted) return;
+    const t = setTimeout(() => { saveProfile(); }, 2500);
+    return () => clearTimeout(t);
+  }, [session, submitted, saveProfile]);
+
+  // ── AUTO-GENERATE CANVAS ON LOGIN IF PROFILE EXISTS BUT CANVAS EMPTY ───
+  const canvasGenTriggered = useRef(false);
+  useEffect(() => {
+    if (!session || !submitted || cLoading || canvasGenTriggered.current) return;
+    if (Object.keys(canvas).length === 0 && p.bizName && p.trade) {
+      canvasGenTriggered.current = true;
+      genCanvas();
+    }
+  }, [session, submitted, canvas, p.bizName, p.trade, cLoading]);
 
   // ── CONTEXT STRING FOR AI ─────────────────────────────────────────────────
   const ctx = () => `Business:${p.bizName}
@@ -759,9 +779,9 @@ Keep replies short, friendly, and helpful. No emojis.`,
         {/* HEADER */}
         <div className="hdr">
           <div className="logo">Trade<span>Stack</span></div>
+          <div className="hdr-tagline">OBT<span style={{color:'#f5a623',fontWeight:800}}>AI</span>N WHAT OTHERS OVERLOOK.</div>
           <div className="hdr-right">
             {isPremium && <span className="premium-badge">Premium</span>}
-            {submitted && <div className="biz-tag">{p.bizName}</div>}
             <button className="btn bg" style={{padding:'.4rem .85rem',fontSize:'.65rem'}} onClick={signOut}>Sign Out</button>
           </div>
         </div>
