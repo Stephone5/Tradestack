@@ -221,13 +221,16 @@ export default function App() {
 
   // ── NAV ─────────────────────────────────────────────────────────────────
   const [tab,          setTab]          = useState("input");
+  // After loading profile, if user already submitted, default to canvas
+  const initialTabSet = useRef(false);
 
   // ── BUSINESS PROFILE ────────────────────────────────────────────────────
   const [p, setP] = useState({
     bizName:"", trade:"", location:"", yearsOp:"", employees:"",
     annualRev:"", cogs:"", opEx:"", netIncome:"",
     topService:"", avgJobValue:"", painPoints:"",
-    phoneNumber:"", timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "America/New_York"
+    phoneNumber:"", timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "America/New_York",
+    problem:"", solution:"", uvp:"", unfair:"", segments:"", metrics:"", channels:"", revenue:"", cost:""
   });
   const [submitted,    setSubmitted]    = useState(false);
   const [saving,       setSaving]       = useState(false);
@@ -262,6 +265,7 @@ export default function App() {
   const handleUpgrade = async () => {
     setCheckoutLoading(true);
     setCheckoutError(null);
+    sessionStorage.setItem('ts_pre_checkout_tab', tab);
     try {
       const data = await callEdge('create-checkout', {}, session);
       if (data?.url) {
@@ -313,6 +317,33 @@ export default function App() {
     });
     const t = setTimeout(() => setAuthLoading(false), 4000);
     return () => { subscription.unsubscribe(); clearTimeout(t); };
+  }, []);
+
+  // ── AUTO-SWITCH RETURNING USERS TO CANVAS ──────────────────────────────
+  useEffect(() => {
+    if (session && submitted && !initialTabSet.current) {
+      initialTabSet.current = true;
+      const params = new URLSearchParams(window.location.search);
+      if (!params.get('checkout')) {
+        setTab('canvas');
+      }
+    }
+  }, [session, submitted]);
+
+  // ── HANDLE CHECKOUT RETURN ─────────────────────────────────────────────
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('checkout') === 'success') {
+      window.history.replaceState(null, '', window.location.pathname);
+      // Restore tab to opportunities (where they likely hit upgrade)
+      const savedTab = sessionStorage.getItem('ts_pre_checkout_tab');
+      if (savedTab) {
+        setTab(savedTab);
+        sessionStorage.removeItem('ts_pre_checkout_tab');
+      } else {
+        setTab('opportunities');
+      }
+    }
   }, []);
 
   // ── LOAD ALL USER DATA ON LOGIN ──────────────────────────────────────────
@@ -368,6 +399,12 @@ export default function App() {
       });
       setCanvas(cells);
       setCanvasScores(scores);
+      // Also sync canvas cells back into profile state for the Business Model section
+      setP(prev => {
+        const update = { ...prev };
+        CELLS.forEach(c => { if (cells[c.k]) update[c.k] = cells[c.k]; });
+        return update;
+      });
     }
   }
 
@@ -425,7 +462,8 @@ export default function App() {
     setP({ bizName:"",trade:"",location:"",yearsOp:"",employees:"",
            annualRev:"",cogs:"",opEx:"",netIncome:"",topService:"",
            avgJobValue:"",painPoints:"",phoneNumber:"",
-           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone });
+           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+           problem:"",solution:"",uvp:"",unfair:"",segments:"",metrics:"",channels:"",revenue:"",cost:"" });
     setSubmitted(false); setCanvas({}); setCanvasScores({});
     setOpps([]); setGoals([]); setGoalSteps({});
     setCsMessages([]); setTab("input"); setIsPremium(false);
@@ -451,6 +489,15 @@ export default function App() {
       pain_points:  p.painPoints,
       phone_number: p.phoneNumber,
       timezone:     p.timezone,
+      canvas_problem:   p.problem,
+      canvas_solution:  p.solution,
+      canvas_uvp:       p.uvp,
+      canvas_unfair:    p.unfair,
+      canvas_segments:  p.segments,
+      canvas_metrics:   p.metrics,
+      canvas_channels:  p.channels,
+      canvas_revenue:   p.revenue,
+      canvas_cost:      p.cost,
       updated_at:   new Date().toISOString(),
     }, { onConflict: 'user_id' });
     if (error) console.error('saveProfile error:', error);
@@ -463,16 +510,6 @@ export default function App() {
     const t = setTimeout(() => { saveProfile(); }, 2500);
     return () => clearTimeout(t);
   }, [session, submitted, saveProfile]);
-
-  // ── AUTO-GENERATE CANVAS ON LOGIN IF PROFILE EXISTS BUT CANVAS EMPTY ───
-  const canvasGenTriggered = useRef(false);
-  useEffect(() => {
-    if (!session || !submitted || cLoading || canvasGenTriggered.current) return;
-    if (Object.keys(canvas).length === 0 && p.bizName && p.trade) {
-      canvasGenTriggered.current = true;
-      genCanvas();
-    }
-  }, [session, submitted, canvas, p.bizName, p.trade, cLoading]);
 
   // ── CONTEXT STRING FOR AI ─────────────────────────────────────────────────
   const ctx = () => `Business:${p.bizName}
@@ -488,30 +525,26 @@ TopService:${p.topService}
 AvgJobValue:$${p.avgJobValue}
 PainPoints:${p.painPoints}`;
 
-  // ── GENERATE CANVAS ───────────────────────────────────────────────────────
-  const genCanvas = async () => {
+  // ── SYNC CANVAS FROM USER INPUT ──────────────────────────────────────────
+  const syncCanvas = async () => {
     setCLoading(true);
     try {
-      const data = await callEdge('claude-proxy', {
-        system: `You are a business strategist for small trades businesses. Return ONLY valid JSON with keys: problem,solution,uvp,unfair,segments,metrics,channels,revenue,cost. Each value: 2-4 bullet points using the bullet character. Max 400 chars per value. No markdown.`,
-        user: `Build a lean canvas for this business:\n${ctx()}`
-      }, session);
-      const parsed = jp(data?.text || '{}');
-      if (!parsed) { setCLoading(false); return; }
-      setCanvas(parsed);
+      const canvasData = {};
+      CELLS.forEach(c => { canvasData[c.k] = p[c.k] || ''; });
+      setCanvas(canvasData);
       // Save all cells to Supabase
       const rows = CELLS.map(c => ({
         user_id:    session.user.id,
         cell_key:   c.k,
-        content:    parsed[c.k] || '',
+        content:    canvasData[c.k] || '',
         updated_at: new Date().toISOString(),
       }));
       await supabase.from('canvas_cells').upsert(rows, { onConflict: 'user_id,cell_key' });
-      // Score the canvas
-      genScores(parsed);
-      // Generate opportunities too
-      genOpportunities(parsed);
-    } catch(e) { console.error('Canvas error:', e); }
+      // Score the canvas with AI
+      genScores(canvasData);
+      // Generate opportunities from canvas + pain points
+      genOpportunities(canvasData);
+    } catch(e) { console.error('Canvas sync error:', e); }
     setCLoading(false);
   };
 
@@ -543,7 +576,7 @@ PainPoints:${p.painPoints}`;
     try {
       const data = await callEdge('claude-proxy', {
         system: `You are a revenue and efficiency consultant for small trades businesses. Analyze this lean canvas and generate opportunity cards. Return ONLY valid JSON array: [{"canvas_cell":"problem","title":"string","insight":"string (2-3 sentences, specific and actionable)","impact_label":"High"|"Medium"|"Low"}]. Generate at least 2 cards per relevant canvas cell. Be specific to the trade, numbers, and pain points. Focus on the 20% actions that drive 80% of results.`,
-        user: `Generate opportunities for this business:\n${ctx()}\n\nLean Canvas:\n${JSON.stringify(canvasData)}`
+        user: `Generate opportunities for this business:\n${ctx()}\n\nLean Canvas:\n${JSON.stringify(canvasData)}\n\nBiggest Pain Points:\n${p.painPoints || 'None specified'}`
       }, session);
       const parsed = jp(data?.text || '[]');
       if (!Array.isArray(parsed)) { setOppLoading(false); return; }
@@ -572,7 +605,7 @@ PainPoints:${p.painPoints}`;
     setSubmitted(true);
     setTab("canvas");
     await saveProfile();
-    await genCanvas();
+    await syncCanvas();
   };
 
   // ── SAVE CANVAS CELL EDIT ─────────────────────────────────────────────────
@@ -826,7 +859,9 @@ Keep replies short, friendly, and helpful. No emojis.`,
 
           {/* ── INPUT TAB ──────────────────────────────────────────────── */}
           {tab==="input" && <>
-            <div className="stitle">Your Business</div>
+
+            {/* ─── GENERAL INFORMATION ─── */}
+            <div className="stitle">General Information</div>
             <div className="g2">
               <div className="fg">
                 <label>Business Name</label>
@@ -862,8 +897,52 @@ Keep replies short, friendly, and helpful. No emojis.`,
               </div>
             </div>
 
+            {/* ─── BUSINESS MODEL ─── */}
             <div className="divider"/>
-            <div className="stitle">Financials (Annual)</div>
+            <div className="stitle">Business Model</div>
+            <p style={{fontSize:'.82rem',color:'#666',marginBottom:'1rem',lineHeight:1.55}}>Describe your business strategy in your own words. This becomes your Lean Canvas and is scored by AI to surface opportunities.</p>
+            <div className="g2">
+              <div className="fg">
+                <label>Problem</label>
+                <textarea value={p.problem} onChange={e=>setP(v=>({...v,problem:e.target.value}))} placeholder="What problem does your business solve? What pain do your customers have?"/>
+              </div>
+              <div className="fg">
+                <label>Solution</label>
+                <textarea value={p.solution} onChange={e=>setP(v=>({...v,solution:e.target.value}))} placeholder="How does your business solve that problem? What do you deliver?"/>
+              </div>
+              <div className="fg">
+                <label>Unique Value Proposition</label>
+                <textarea value={p.uvp} onChange={e=>setP(v=>({...v,uvp:e.target.value}))} placeholder="Why should customers choose you over the competition?"/>
+              </div>
+              <div className="fg">
+                <label>Unfair Advantage</label>
+                <textarea value={p.unfair} onChange={e=>setP(v=>({...v,unfair:e.target.value}))} placeholder="What do you have that competitors can't easily copy? (reputation, patents, relationships...)"/>
+              </div>
+              <div className="fg">
+                <label>Customer Segments</label>
+                <textarea value={p.segments} onChange={e=>setP(v=>({...v,segments:e.target.value}))} placeholder="Who are your ideal customers? Be specific. (e.g. homeowners 35-55 in suburban Austin)"/>
+              </div>
+              <div className="fg">
+                <label>Key Metrics</label>
+                <textarea value={p.metrics} onChange={e=>setP(v=>({...v,metrics:e.target.value}))} placeholder="What numbers do you track? (jobs/month, close rate, repeat customers, avg ticket...)"/>
+              </div>
+              <div className="fg">
+                <label>Channels</label>
+                <textarea value={p.channels} onChange={e=>setP(v=>({...v,channels:e.target.value}))} placeholder="How do customers find you? (referrals, Google, yard signs, Home Advisor...)"/>
+              </div>
+              <div className="fg">
+                <label>Revenue Streams</label>
+                <textarea value={p.revenue} onChange={e=>setP(v=>({...v,revenue:e.target.value}))} placeholder="How do you make money? (service calls, contracts, installs, maintenance plans...)"/>
+              </div>
+              <div className="fg full">
+                <label>Cost Structure</label>
+                <textarea value={p.cost} onChange={e=>setP(v=>({...v,cost:e.target.value}))} placeholder="What are your biggest costs? (labor, materials, trucks, insurance, marketing...)"/>
+              </div>
+            </div>
+
+            {/* ─── PROFIT & LOSS ─── */}
+            <div className="divider"/>
+            <div className="stitle">Profit & Loss (Annual)</div>
             <div className="g2">
               <div className="fg">
                 <label>Annual Revenue ($)</label>
@@ -883,10 +962,14 @@ Keep replies short, friendly, and helpful. No emojis.`,
                 <label>Net Income ($)</label>
                 <input type="number" inputMode="numeric" value={p.netIncome} onChange={e=>setP(v=>({...v,netIncome:e.target.value}))} placeholder="145000"/>
               </div>
-              <div className="fg full">
-                <label>Biggest Pain Points</label>
-                <textarea value={p.painPoints} onChange={e=>setP(v=>({...v,painPoints:e.target.value}))} placeholder="Chasing invoices, no-shows, slow seasons..."/>
-              </div>
+            </div>
+
+            {/* ─── PAIN POINTS ─── */}
+            <div className="divider"/>
+            <div className="stitle">Biggest Pain Points</div>
+            <p style={{fontSize:'.82rem',color:'#666',marginBottom:'.75rem',lineHeight:1.55}}>These inform the AI-generated opportunity cards on the Opportunities page. Be specific.</p>
+            <div className="fg">
+              <textarea value={p.painPoints} onChange={e=>setP(v=>({...v,painPoints:e.target.value}))} placeholder="Chasing invoices, no-shows, slow seasons, can't find good help..." style={{minHeight:'100px'}}/>
             </div>
 
             {!isPremium && submitted && (
@@ -894,9 +977,9 @@ Keep replies short, friendly, and helpful. No emojis.`,
                 <div>
                   <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:'.65rem',fontWeight:700,letterSpacing:'.16em',textTransform:'uppercase',color:'#f5a623',marginBottom:'.2rem'}}>Upgrade to Premium</div>
                   <div style={{fontSize:'.8rem',color:'#666'}}>Unlock Opportunities, Goals, and SMS reminders. $9.98/month.</div>
+                  {checkoutError && <div style={{fontSize:'.75rem',color:'#e05252',marginTop:'.3rem'}}>{checkoutError}</div>}
                 </div>
-                <button className="btn bp" style={{width:'auto',whiteSpace:'nowrap'}} onClick={handleUpgrade} disabled={checkoutLoading}>{checkoutLoading ? 'Redirecting...' : 'Upgrade — $9.98/mo'}</button>
-                {checkoutError && <div style={{fontSize:'.75rem',color:'#e05252',marginTop:'.3rem'}}>{checkoutError}</div>}
+                <button className="btn bp" style={{width:'auto',whiteSpace:'nowrap'}} onClick={handleUpgrade} disabled={checkoutLoading}>{checkoutLoading ? 'Redirecting...' : 'Upgrade \u2014 $9.98/mo'}</button>
               </div>
             )}
 
