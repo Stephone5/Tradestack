@@ -349,12 +349,14 @@ export default function App() {
   // ── LOAD ALL USER DATA ON LOGIN ──────────────────────────────────────────
   useEffect(() => {
     if (!session) return;
-    loadProfile();
-    loadSubscription();
-    loadCanvas();
-    loadOpportunities();
-    loadGoals();
-    loadCSHistory();
+    (async () => {
+      await loadProfile();
+      loadSubscription();
+      await loadCanvas();
+      loadOpportunities();
+      loadGoals();
+      loadCSHistory();
+    })();
   }, [session]);
 
   async function loadProfile() {
@@ -408,12 +410,6 @@ export default function App() {
       });
       setCanvas(cells);
       setCanvasScores(scores);
-      // Also sync canvas cells back into profile state for the Business Model section
-      setP(prev => {
-        const update = { ...prev };
-        CELLS.forEach(c => { if (cells[c.k]) update[c.k] = cells[c.k]; });
-        return update;
-      });
     }
   }
 
@@ -1036,7 +1032,17 @@ Keep replies short, friendly, and helpful. No emojis.`,
                             value={canvas[c.k] || ''}
                             maxLength={400}
                             onChange={e => saveCanvasCell(c.k, e.target.value)}
-                            placeholder="—"
+                            placeholder={({
+                              problem: "What problem does your business solve for customers?",
+                              solution: "How does your business solve that problem?",
+                              uvp: "Why should customers choose you over the competition?",
+                              unfair: "What do you have that competitors can't easily copy?",
+                              segments: "Who are your ideal customers? Be specific.",
+                              metrics: "What key numbers do you track? (jobs/month, close rate...)",
+                              channels: "How do customers find you? (referrals, Google, ads...)",
+                              revenue: "How do you make money? (service calls, contracts...)",
+                              cost: "What are your biggest costs? (labor, materials, trucks...)",
+                            })[c.k] || "Describe this section of your business..."}
                           />
                         </div>
                       );
