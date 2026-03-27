@@ -1,5 +1,5 @@
 # TradeStack — Project State
-_Updated: 2026-03-27 (late evening) | Status: PHASE 1 IN PROGRESS_
+_Updated: 2026-03-27 (late night) | Status: PHASE 1 IN PROGRESS_
 
 ---
 
@@ -16,6 +16,8 @@ _These are things Stephen has asked for that have not been completed. Do not sta
 | 5 | Remove AI from Canvas tab | Mar 27 | **DONE** | Canvas is now pure user-editable textareas. No genCanvas(), no score badges, no AI loading screen. |
 | 6 | Fix input-to-canvas data flow | Mar 27 | **DONE** | Business Model section (9 textareas) restored to Input tab. Values flow to Canvas via shared state. |
 | 7 | Fix corrupted characters on loading screen | Mar 27 | **DONE** | All non-ASCII chars stripped from App.jsx. Pure ASCII file (69228 bytes). |
+| 8 | Premium paywall not unlocking after Stripe purchase | Mar 27 | **NOT DONE** | Stripe checkout completes and returns user to last page, but premium gate still blocks Tab 3 (Opportunities) and Tab 4 (Goals). Stephen has never seen these tabs. |
+| 9 | Input data not persisting (General Info + Financial sections) | Mar 27 | **NOT DONE** | Users enter data in General Information and Financial sections on Input tab, but it is lost on page reload/logout. Must save to Supabase immediately per architecture rules. |
 
 ---
 
