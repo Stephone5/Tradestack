@@ -7,8 +7,7 @@ body{background:#0e0e0e;}
 .lp{background:#0e0e0e;color:#e8e0d4;font-family:'Barlow',sans-serif;font-weight:300;line-height:1.7;min-height:100vh;}
 
 /* NAV */
-.lp-nav{position:sticky;top:0;z-index:100;background:#0e0e0e;border-bottom:1px solid #1a1a1a;padding:.9rem 1.5rem;display:flex;align-items:center;justify-content:space-between;position:relative;}
-.lp-nav-tagline{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:#e8e0d4;position:absolute;left:50%;transform:translateX(-50%);white-space:nowrap;}
+.lp-nav{position:sticky;top:0;z-index:100;background:#0e0e0e;border-bottom:1px solid #1a1a1a;padding:.9rem 1.5rem;display:flex;align-items:center;justify-content:space-between;}
 .lp-logo{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:1.15rem;letter-spacing:.1em;text-transform:uppercase;color:#f5a623;}
 .lp-logo span{color:#e8e0d4;}
 .lp-nav-btn{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:#0e0e0e;background:#f5a623;border:none;padding:.55rem 1.2rem;cursor:pointer;border-radius:2px;transition:background .15s;}
@@ -80,7 +79,7 @@ body{background:#0e0e0e;}
 .lp-footer-note{font-size:.65rem;color:#333;letter-spacing:.08em;}
 `;
 
-export default function LandingPage({ onSignIn, onUpgrade }) {
+export default function LandingPage({ onSignIn }) {
   return (
     <>
       <style>{CSS}</style>
@@ -89,8 +88,7 @@ export default function LandingPage({ onSignIn, onUpgrade }) {
         {/* NAV */}
         <nav className="lp-nav">
           <div className="lp-logo">Trade<span>Stack</span></div>
-          <div className="lp-nav-tagline">OBT<span style={{color:'#f5a623',fontWeight:800}}>AI</span>N WHAT OTHERS OVERLOOK.</div>
-          <button className="lp-nav-btn" onClick={onSignIn}>Sign Up Free</button>
+          <button className="lp-nav-btn" onClick={onSignIn}>Sign Up / Login</button>
         </nav>
 
         {/* HERO */}
@@ -99,7 +97,7 @@ export default function LandingPage({ onSignIn, onUpgrade }) {
             <div className="lp-eyebrow">Business Intelligence for Small Business</div>
             <h1 className="lp-h1">You work too hard<br/>to not know <span>where your<br/>money goes.</span></h1>
             <p className="lp-hero-sub">Most small business owners have no idea which 20% of their effort produces 80% of their results. TradeStack finds it {'\u2014'} in minutes, not months.</p>
-            <button className="lp-cta" onClick={onSignIn}>Sign Up Free</button>
+            <button className="lp-cta" onClick={onSignIn}>Sign Up / Login</button>
             <p className="lp-hero-note">No credit card required. Takes about three minutes to set up.</p>
           </div>
         </section>
@@ -173,7 +171,7 @@ export default function LandingPage({ onSignIn, onUpgrade }) {
                   <li>Edit and refine every section yourself</li>
                   <li>See your scores {'\u2014'} and know something's there</li>
                 </ul>
-                <button className="lp-cta lp-cta--wide lp-cta--ghost" onClick={onSignIn}>Get Started Free</button>
+                <button className="lp-cta lp-cta--wide lp-cta--ghost" onClick={onSignIn}>Sign Up / Login</button>
               </div>
               <div className="lp-plan lp-plan--premium">
                 <div className="lp-plan-label">Premium</div>
@@ -187,7 +185,7 @@ export default function LandingPage({ onSignIn, onUpgrade }) {
                   <li>A running total of money saved and revenue unlocked</li>
                 </ul>
                 <p className="lp-plan-note">Most users find more than their subscription cost in the first week.</p>
-                <button className="lp-cta lp-cta--wide" onClick={onUpgrade || onSignIn}>Start Premium</button>
+                <button className="lp-cta lp-cta--wide" onClick={onSignIn}>Start Premium</button>
               </div>
             </div>
           </div>
@@ -209,9 +207,9 @@ export default function LandingPage({ onSignIn, onUpgrade }) {
         <section className="lp-final">
           <div className="lp-inner">
             <div className="lp-eyebrow">Get Started</div>
-            <h2 className="lp-h2">OBT<span>AI</span>N WHAT OTHERS OVERLOOK.</h2>
-            <p className="lp-p">Your business has answers in it. Free to start. No credit card. Three minutes to your Lean Canvas.</p>
-            <button className="lp-cta" onClick={onSignIn}>Sign Up Free</button>
+            <h2 className="lp-h2">Your business has answers in it.<br/>Let's find them.</h2>
+            <p className="lp-p">Free to start. No credit card. Three minutes to your Lean Canvas.</p>
+            <button className="lp-cta" onClick={onSignIn}>Sign Up / Login</button>
           </div>
         </section>
 
