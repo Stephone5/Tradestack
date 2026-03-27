@@ -2,11 +2,11 @@
 // Proxies requests to Anthropic API server-side.
 // Enforces: authentication, rate limiting (50 calls/day for premium, 0 for free).
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from 'npm:@supabase/supabase-js@2';
 
-const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY')!;
-const SUPABASE_URL      = Deno.env.get('SUPABASE_URL')!;
-const SUPABASE_SERVICE  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY') || '';
+const SUPABASE_URL      = Deno.env.get('SUPABASE_URL') || '';
+const SUPABASE_SERVICE  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 
 const DAILY_LIMIT_FREE    = 20;
 const DAILY_LIMIT_PREMIUM = 100;
@@ -68,7 +68,7 @@ Deno.serve(async (req) => {
     // ── CALL ANTHROPIC ───────────────────────────────────────────────────
     const messages = [];
     if (history?.length) {
-      messages.push(...history.map((m: any) => ({ role: m.role, content: m.content })));
+      messages.push(...history.map((m) => ({ role: m.role, content: m.content })));
     }
     messages.push({ role: 'user', content: userMsg });
 
@@ -107,7 +107,7 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 
-  } catch (err: any) {
+  } catch (err) {
     return new Response(JSON.stringify({ error: err.message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
