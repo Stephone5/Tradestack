@@ -257,6 +257,7 @@ export default function App() {
   // ── STRIPE CHECKOUT ──────────────────────────────────────────────────────
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [checkoutError,   setCheckoutError]   = useState(null);
+  const [pendingUpgrade,  setPendingUpgrade]  = useState(false);
 
   const handleUpgrade = async () => {
     setCheckoutLoading(true);
@@ -274,6 +275,14 @@ export default function App() {
     }
     setCheckoutLoading(false);
   };
+
+  // ── AUTO-TRIGGER CHECKOUT AFTER LOGIN (from landing page premium CTA) ───
+  useEffect(() => {
+    if (session && pendingUpgrade) {
+      setPendingUpgrade(false);
+      handleUpgrade();
+    }
+  }, [session, pendingUpgrade]);
 
   // ── COMPUTED ─────────────────────────────────────────────────────────────
   const moneyUnlocked = goals
@@ -397,6 +406,17 @@ export default function App() {
       options: { redirectTo: window.location.origin }
     });
     if (error) console.error('Login error:', error.message);
+  };
+
+  const signInAndUpgrade = async () => {
+    if (session) {
+      // Already signed in — go straight to checkout
+      handleUpgrade();
+    } else {
+      // Set flag so checkout triggers after OAuth callback
+      setPendingUpgrade(true);
+      signInWithGoogle();
+    }
   };
 
   const signOut = async () => {
@@ -762,7 +782,7 @@ Keep replies short, friendly, and helpful. No emojis.`,
     </>
   );
 
-  if (!session) return <LandingPage onSignIn={signInWithGoogle} />;
+  if (!session) return <LandingPage onSignIn={signInWithGoogle} onUpgrade={signInAndUpgrade} />;
 
   const TABS = [
     { id:"input",         l:"Input" },
