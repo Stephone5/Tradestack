@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from './supabaseClient';
 import LandingPage from './components/LandingPage';
 
-// ── HELPERS ────────────────────────────────────────────────────────────────
+// ââ HELPERS ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function jp(text) {
   try { return JSON.parse(text.replace(/```json\n?|```\n?/g,"").trim()); }
   catch { return null; }
@@ -14,7 +14,7 @@ async function callEdge(fn, body, session) {
   return data;
 }
 
-// ── CANVAS CELL DEFINITIONS ────────────────────────────────────────────────
+// ââ CANVAS CELL DEFINITIONS ââââââââââââââââââââââââââââââââââââââââââââââââ
 const CELLS = [
   { k:"problem",   l:"Problem" },
   { k:"solution",  l:"Solution" },
@@ -27,7 +27,7 @@ const CELLS = [
   { k:"cost",      l:"Cost Structure" },
 ];
 
-// ── STYLES ─────────────────────────────────────────────────────────────────
+// ââ STYLES âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 const CSS = `
 @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@300;400;500&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
@@ -208,20 +208,20 @@ textarea{resize:vertical;min-height:80px;}
 .err{font-size:.78rem;color:#e05252;margin-top:.3rem;}
 `;
 
-// ── MAIN APP ───────────────────────────────────────────────────────────────
+// ââ MAIN APP âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 export default function App() {
 
-  // ── AUTH ────────────────────────────────────────────────────────────────
+  // ââ AUTH ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   const [session,      setSession]      = useState(null);
   const [authLoading,  setAuthLoading]  = useState(true);
 
-  // ── PREMIUM ─────────────────────────────────────────────────────────────
+  // ââ PREMIUM âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   const [isPremium,    setIsPremium]    = useState(false);
 
-  // ── NAV ─────────────────────────────────────────────────────────────────
+  // ââ NAV âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   const [tab,          setTab]          = useState("input");
 
-  // ── BUSINESS PROFILE ────────────────────────────────────────────────────
+  // ââ BUSINESS PROFILE ââââââââââââââââââââââââââââââââââââââââââââââââââââ
   const [p, setP] = useState({
     bizName:"", trade:"", location:"", yearsOp:"", employees:"",
     annualRev:"", cogs:"", opEx:"", netIncome:"",
@@ -231,29 +231,29 @@ export default function App() {
   const [submitted,    setSubmitted]    = useState(false);
   const [saving,       setSaving]       = useState(false);
 
-  // ── CANVAS ──────────────────────────────────────────────────────────────
+  // ââ CANVAS ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   const [canvas,       setCanvas]       = useState({});
   const [canvasScores, setCanvasScores] = useState({});
   const [cLoading,     setCLoading]     = useState(false);
   const [scoreTooltip, setScoreTooltip] = useState(null); // {key, x, y}
 
-  // ── OPPORTUNITIES ────────────────────────────────────────────────────────
+  // ââ OPPORTUNITIES ââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   const [opps,         setOpps]         = useState([]);
   const [oppLoading,   setOppLoading]   = useState(false);
   const [migratedMsg,  setMigratedMsg]  = useState({}); // {oppId: true}
 
-  // ── GOALS ────────────────────────────────────────────────────────────────
+  // ââ GOALS ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   const [goals,        setGoals]        = useState([]);
   const [goalSteps,    setGoalSteps]    = useState({}); // {goalId: [steps]}
 
-  // ── CUSTOMER SERVICE ─────────────────────────────────────────────────────
+  // ââ CUSTOMER SERVICE âââââââââââââââââââââââââââââââââââââââââââââââââââââ
   const [csOpen,       setCsOpen]       = useState(false);
   const [csMessages,   setCsMessages]   = useState([]);
   const [csInput,      setCsInput]      = useState("");
   const [csLoading,    setCsLoading]    = useState(false);
   const csEndRef = useRef(null);
 
-  // ── STRIPE CHECKOUT ──────────────────────────────────────────────────────
+  // ââ STRIPE CHECKOUT ââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [checkoutError,   setCheckoutError]   = useState(null);
   const [pendingUpgrade,  setPendingUpgrade]  = useState(false);
@@ -283,7 +283,7 @@ export default function App() {
     setCheckoutLoading(false);
   };
 
-  // ── CHECKOUT RETURN: poll for subscription activation ──────────────────
+  // ââ CHECKOUT RETURN: poll for subscription activation ââââââââââââââââââ
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('checkout') !== 'success') return;
@@ -306,15 +306,10 @@ export default function App() {
     return () => clearInterval(poll);
   }, [session]);
 
-  // ── AUTO-SWITCH returning users to canvas tab ─────────────────────────
-  useEffect(() => {
-    if (session && submitted && tab === 'input') {
-      const params = new URLSearchParams(window.location.search);
-      if (!params.get('checkout')) setTab('canvas');
-    }
-  }, [session, submitted]);
+  // ââ AUTO-SWITCH returning users to canvas tab âââââââââââââââââââââââââ
+  // (auto-switch removed — input tab is always accessible)
 
-  // ── MANAGE BILLING (Stripe portal) ────────────────────────────────────
+  // ââ MANAGE BILLING (Stripe portal) ââââââââââââââââââââââââââââââââââââ
   const [billingLoading, setBillingLoading] = useState(false);
   const handleManageBilling = async () => {
     setBillingLoading(true);
@@ -331,7 +326,7 @@ export default function App() {
     setBillingLoading(false);
   };
 
-  // ── COMPUTED ─────────────────────────────────────────────────────────────
+  // ââ COMPUTED âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   const moneyUnlocked = goals
     .filter(g => g.status === "completed")
     .reduce((sum, g) => sum + (parseFloat(g.estimated_value) || 0), 0);
@@ -346,7 +341,7 @@ export default function App() {
     ? ((parseFloat(p.netIncome) / parseFloat(p.annualRev)) * 100).toFixed(1)
     : null;
 
-  // ── AUTH LISTENER ────────────────────────────────────────────────────────
+  // ââ AUTH LISTENER ââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   useEffect(() => {
     const hashHasToken = window.location.hash.includes('access_token');
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, s) => {
@@ -362,7 +357,7 @@ export default function App() {
     return () => { subscription.unsubscribe(); clearTimeout(t); };
   }, []);
 
-  // ── LOAD ALL USER DATA ON LOGIN ──────────────────────────────────────────
+  // ââ LOAD ALL USER DATA ON LOGIN ââââââââââââââââââââââââââââââââââââââââââ
   useEffect(() => {
     if (!session) return;
     (async () => {
@@ -448,7 +443,7 @@ export default function App() {
     if (data?.length) setCsMessages(data);
   }
 
-  // ── AUTH ACTIONS ─────────────────────────────────────────────────────────
+  // ââ AUTH ACTIONS âââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   const signInWithGoogle = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
@@ -469,7 +464,7 @@ export default function App() {
     setCsMessages([]); setTab("input"); setIsPremium(false);
   };
 
-  // ── SAVE PROFILE ─────────────────────────────────────────────────────────
+  // ââ SAVE PROFILE âââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   const saveProfile = useCallback(async () => {
     if (!session) return;
     setSaving(true);
@@ -494,7 +489,7 @@ export default function App() {
     setSaving(false);
   }, [session, p]);
 
-  // ── CONTEXT STRING FOR AI ─────────────────────────────────────────────────
+  // ââ CONTEXT STRING FOR AI âââââââââââââââââââââââââââââââââââââââââââââââââ
   const ctx = () => `Business:${p.bizName}
 Trade:${p.trade}
 Location:${p.location}
@@ -508,7 +503,7 @@ TopService:${p.topService}
 AvgJobValue:$${p.avgJobValue}
 PainPoints:${p.painPoints}`;
 
-  // ── GENERATE CANVAS ───────────────────────────────────────────────────────
+  // ââ GENERATE CANVAS âââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   const genCanvas = async () => {
     setCLoading(true);
     try {
@@ -535,11 +530,11 @@ PainPoints:${p.painPoints}`;
     setCLoading(false);
   };
 
-  // ── GENERATE CANVAS SCORES ────────────────────────────────────────────────
+  // ââ GENERATE CANVAS SCORES ââââââââââââââââââââââââââââââââââââââââââââââââ
   const genScores = async (canvasData) => {
     try {
       const data = await callEdge('claude-proxy', {
-        system: `You are a lean canvas analyst. Score each canvas cell 0-100 based on: (1) how optimized the content is, (2) integration with other cells, (3) specificity and actionability. Return ONLY valid JSON: {"problem":{"score":75,"preview":"Cut labor costs"},...} — one entry per cell key. The preview is 3-5 words describing the top opportunity linked to this cell.`,
+        system: `You are a lean canvas analyst. Score each canvas cell 0-100 based on: (1) how optimized the content is, (2) integration with other cells, (3) specificity and actionability. Return ONLY valid JSON: {"problem":{"score":75,"preview":"Cut labor costs"},...} â one entry per cell key. The preview is 3-5 words describing the top opportunity linked to this cell.`,
         user: `Score this lean canvas:\n${JSON.stringify(canvasData)}\n\nBusiness context:\n${ctx()}`
       }, session);
       const parsed = jp(data?.text || '{}');
@@ -557,7 +552,7 @@ PainPoints:${p.painPoints}`;
     } catch(e) { console.error('Score error:', e); }
   };
 
-  // ── GENERATE OPPORTUNITIES ────────────────────────────────────────────────
+  // ââ GENERATE OPPORTUNITIES ââââââââââââââââââââââââââââââââââââââââââââââââ
   const genOpportunities = async (canvasData) => {
     setOppLoading(true);
     try {
@@ -587,7 +582,7 @@ PainPoints:${p.painPoints}`;
     setOppLoading(false);
   };
 
-  // ── SUBMIT PROFILE ────────────────────────────────────────────────────────
+  // ââ SUBMIT PROFILE ââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   const submit = async () => {
     setSubmitted(true);
     setTab("canvas");
@@ -595,7 +590,7 @@ PainPoints:${p.painPoints}`;
     await genCanvas();
   };
 
-  // ── SAVE CANVAS CELL EDIT ─────────────────────────────────────────────────
+  // ââ SAVE CANVAS CELL EDIT âââââââââââââââââââââââââââââââââââââââââââââââââ
   const saveCanvasCell = useCallback(async (key, value) => {
     setCanvas(prev => ({ ...prev, [key]: value }));
     await supabase.from('canvas_cells').upsert({
@@ -606,7 +601,7 @@ PainPoints:${p.painPoints}`;
     }, { onConflict: 'user_id,cell_key' });
   }, [session]);
 
-  // ── MIGRATE OPPORTUNITY → GOAL ────────────────────────────────────────────
+  // ââ MIGRATE OPPORTUNITY â GOAL ââââââââââââââââââââââââââââââââââââââââââââ
   const migrateToGoal = async (opp) => {
     setMigratedMsg(prev => ({ ...prev, [opp.id]: true }));
     // Mark migrated in DB
@@ -663,7 +658,7 @@ PainPoints:${p.painPoints}`;
     }, 2000);
   };
 
-  // ── UPDATE GOAL STEP STATUS ───────────────────────────────────────────────
+  // ââ UPDATE GOAL STEP STATUS âââââââââââââââââââââââââââââââââââââââââââââââ
   const cycleStepStatus = async (goalId, stepId, currentStatus) => {
     const next = currentStatus === 'not_started' ? 'in_progress'
                : currentStatus === 'in_progress' ? 'done'
@@ -674,7 +669,7 @@ PainPoints:${p.painPoints}`;
       ...prev,
       [goalId]: (prev[goalId]||[]).map(s => s.id === stepId ? {...s, status: next} : s)
     }));
-    // If all steps done → auto-complete the goal
+    // If all steps done â auto-complete the goal
     const updatedSteps = (goalSteps[goalId]||[]).map(s => s.id === stepId ? {...s, status: next} : s);
     if (updatedSteps.length > 0 && updatedSteps.every(s => s.status === 'done')) {
       await completeGoal(goalId);
@@ -699,14 +694,14 @@ PainPoints:${p.painPoints}`;
     setGoals(prev => prev.map(g => g.id === goalId ? {...g, status:'completed', completed_at: new Date().toISOString()} : g));
   };
 
-  // ── UPDATE GOAL FIELD ─────────────────────────────────────────────────────
+  // ââ UPDATE GOAL FIELD âââââââââââââââââââââââââââââââââââââââââââââââââââââ
   const updateGoalField = async (goalId, field, value) => {
     setGoals(prev => prev.map(g => g.id === goalId ? {...g, [field]: value} : g));
     await supabase.from('goals')
       .update({ [field]: value, updated_at: new Date().toISOString() }).eq('id', goalId);
   };
 
-  // ── UPDATE STEP TEXT ──────────────────────────────────────────────────────
+  // ââ UPDATE STEP TEXT ââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   const updateStepText = async (goalId, stepId, value) => {
     setGoalSteps(prev => ({
       ...prev,
@@ -716,7 +711,7 @@ PainPoints:${p.painPoints}`;
       .update({ step_text: value, updated_at: new Date().toISOString() }).eq('id', stepId);
   };
 
-  // ── TOGGLE SMS FOR GOAL ───────────────────────────────────────────────────
+  // ââ TOGGLE SMS FOR GOAL âââââââââââââââââââââââââââââââââââââââââââââââââââ
   const toggleGoalSMS = async (goalId, current) => {
     if (!p.phoneNumber) {
       alert("Add your phone number in the Input tab first to enable SMS reminders.");
@@ -725,7 +720,7 @@ PainPoints:${p.painPoints}`;
     await updateGoalField(goalId, 'sms_enabled', !current);
   };
 
-  // ── CUSTOMER SERVICE ──────────────────────────────────────────────────────
+  // ââ CUSTOMER SERVICE ââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   useEffect(() => {
     csEndRef.current?.scrollIntoView({ behavior:'smooth' });
   }, [csMessages]);
@@ -740,7 +735,7 @@ PainPoints:${p.painPoints}`;
     try {
       const history = [...csMessages, userMsg].map(m => ({ role: m.role, content: m.content }));
       const data = await callEdge('claude-proxy', {
-        system: `You are the TradeStack customer service assistant. You ONLY answer questions about how to use TradeStack — the business intelligence app. If asked anything else, say: "I'm not sure about that, but I'm here to help you get the most out of TradeStack. What can I help you with?"
+        system: `You are the TradeStack customer service assistant. You ONLY answer questions about how to use TradeStack â the business intelligence app. If asked anything else, say: "I'm not sure about that, but I'm here to help you get the most out of TradeStack. What can I help you with?"
 
 TradeStack has 4 tabs:
 - Input: Enter your business info and financials. Hit "Save & Analyze" to generate your canvas and opportunities.
@@ -762,7 +757,7 @@ Keep replies short, friendly, and helpful. No emojis.`,
     setCsLoading(false);
   };
 
-  // ── SCORE BADGE HELPERS ───────────────────────────────────────────────────
+  // ââ SCORE BADGE HELPERS âââââââââââââââââââââââââââââââââââââââââââââââââââ
   const scoreClass = (score) => {
     if (score == null) return 'score-none';
     if (score >= 70) return 'score-hi';
@@ -782,14 +777,14 @@ Keep replies short, friendly, and helpful. No emojis.`,
     }
   };
 
-  // ── GROUPED OPPORTUNITIES ─────────────────────────────────────────────────
+  // ââ GROUPED OPPORTUNITIES âââââââââââââââââââââââââââââââââââââââââââââââââ
   const groupedOpps = CELLS.reduce((acc, c) => {
     const cards = opps.filter(o => o.canvas_cell === c.k);
     if (cards.length) acc[c.k] = { label: c.l, cards };
     return acc;
   }, {});
 
-  // ── RENDER ────────────────────────────────────────────────────────────────
+  // ââ RENDER ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   if (authLoading) return (
     <>
       <style>{CSS}</style>
@@ -844,7 +839,7 @@ Keep replies short, friendly, and helpful. No emojis.`,
 
         <div className="pg">
 
-          {/* ── INPUT TAB ──────────────────────────────────────────────── */}
+          {/* ââ INPUT TAB ââââââââââââââââââââââââââââââââââââââââââââââââ */}
           {tab==="input" && <>
             <div className="stitle">Your Business</div>
             <div className="g2">
@@ -916,7 +911,7 @@ Keep replies short, friendly, and helpful. No emojis.`,
                   <div style={{fontSize:'.8rem',color:'#666'}}>Unlock Opportunities, Goals, and SMS reminders. $9.98/month.</div>
                   {checkoutError && <div style={{fontSize:'.75rem',color:'#e05252',marginTop:'.3rem'}}>{checkoutError}</div>}
                 </div>
-                <button className="btn bp" style={{width:'auto',whiteSpace:'nowrap'}} onClick={handleUpgrade} disabled={checkoutLoading}>{checkoutLoading ? 'Redirecting...' : 'Upgrade — $9.98/mo'}</button>
+                <button className="btn bp" style={{width:'auto',whiteSpace:'nowrap'}} onClick={handleUpgrade} disabled={checkoutLoading}>{checkoutLoading ? 'Redirecting...' : 'Upgrade â $9.98/mo'}</button>
               </div>
             )}
 
@@ -936,9 +931,9 @@ Keep replies short, friendly, and helpful. No emojis.`,
             </div>
           </>}
 
-          {/* ── CANVAS TAB ─────────────────────────────────────────────── */}
+          {/* ââ CANVAS TAB âââââââââââââââââââââââââââââââââââââââââââââââ */}
           {tab==="canvas" && <>
-            <div className="stitle">Lean Canvas — {p.bizName}</div>
+            <div className="stitle">Lean Canvas â {p.bizName}</div>
             {cLoading
               ? <div className="loader"><div className="lbar"/><div className="llbl">Building your canvas...</div></div>
               : <>
@@ -964,7 +959,7 @@ Keep replies short, friendly, and helpful. No emojis.`,
                             value={canvas[c.k] || ''}
                             maxLength={400}
                             onChange={e => saveCanvasCell(c.k, e.target.value)}
-                            placeholder="—"
+                            placeholder="â"
                           />
                         </div>
                       );
@@ -983,7 +978,7 @@ Keep replies short, friendly, and helpful. No emojis.`,
             )}
           </>}
 
-          {/* ── OPPORTUNITIES TAB ──────────────────────────────────────── */}
+          {/* ââ OPPORTUNITIES TAB ââââââââââââââââââââââââââââââââââââââââ */}
           {tab==="opportunities" && <>
             {!isPremium
               ? <div className="blur-gate-wrap">
@@ -991,8 +986,8 @@ Keep replies short, friendly, and helpful. No emojis.`,
                     {/* Placeholder cards that look real but are blurred */}
                     {[
                       {label:"Revenue Streams", cards:[
-                        {title:"Introduce a recurring maintenance contract", impact:"High", insight:"Trades businesses with annual service agreements generate 30–40% more predictable revenue. A simple $299/yr inspection contract sold to your top 20 existing customers could add $6,000+ in guaranteed annual income with minimal extra labor."},
-                        {title:"Add a premium response tier for urgent calls", impact:"Medium", insight:"Customers who need same-day service will pay a 20–40% premium without hesitation. Creating a 'Priority Response' offering for $150/call positions you above competitors and captures high-margin emergency revenue."},
+                        {title:"Introduce a recurring maintenance contract", impact:"High", insight:"Trades businesses with annual service agreements generate 30â40% more predictable revenue. A simple $299/yr inspection contract sold to your top 20 existing customers could add $6,000+ in guaranteed annual income with minimal extra labor."},
+                        {title:"Add a premium response tier for urgent calls", impact:"Medium", insight:"Customers who need same-day service will pay a 20â40% premium without hesitation. Creating a 'Priority Response' offering for $150/call positions you above competitors and captures high-margin emergency revenue."},
                       ]},
                       {label:"Problem", cards:[
                         {title:"Address your highest-volume pain point first", impact:"High", insight:"Based on your inputs, your top pain point is costing you time and money every week. Solving even 50% of this friction could free up 5+ hours per week and improve your close rate on repeat business."},
@@ -1019,8 +1014,8 @@ Keep replies short, friendly, and helpful. No emojis.`,
                   <div className="blur-gate-overlay">
                     <div className="blur-gate-eyebrow">Premium Feature</div>
                     <div className="blur-gate-title">See What Matters<br/>For Your Business</div>
-                    <div className="blur-gate-sub">AI-generated opportunities built from your actual canvas — showing exactly where 20% of effort drives 80% of results.</div>
-                    <button className="btn bp" style={{width:'auto'}} onClick={handleUpgrade} disabled={checkoutLoading}>{checkoutLoading ? 'Redirecting...' : 'Upgrade — $9.98/mo'}</button>
+                    <div className="blur-gate-sub">AI-generated opportunities built from your actual canvas â showing exactly where 20% of effort drives 80% of results.</div>
+                    <button className="btn bp" style={{width:'auto'}} onClick={handleUpgrade} disabled={checkoutLoading}>{checkoutLoading ? 'Redirecting...' : 'Upgrade â $9.98/mo'}</button>
                     {checkoutError && <div style={{fontSize:'.72rem',color:'#e05252'}}>{checkoutError}</div>}
                     <div className="blur-gate-price">Cancel anytime. Instant access.</div>
                   </div>
@@ -1039,7 +1034,7 @@ Keep replies short, friendly, and helpful. No emojis.`,
                           {group.cards.map(opp => (
                             <div key={opp.id} className="opp-card">
                               {migratedMsg[opp.id]
-                                ? <div className="opp-migrated">This became a goal — check the Goals tab</div>
+                                ? <div className="opp-migrated">This became a goal â check the Goals tab</div>
                                 : <>
                                     <div className="opp-card-top">
                                       <div className="opp-title">{opp.title}</div>
@@ -1057,7 +1052,7 @@ Keep replies short, friendly, and helpful. No emojis.`,
             }
           </>}
 
-          {/* ── GOALS TAB ──────────────────────────────────────────────── */}
+          {/* ââ GOALS TAB ââââââââââââââââââââââââââââââââââââââââââââââââ */}
           {tab==="goals" && <>
             {!isPremium
               ? <div className="blur-gate-wrap">
@@ -1113,7 +1108,7 @@ Keep replies short, friendly, and helpful. No emojis.`,
                     <div className="blur-gate-eyebrow">Premium Feature</div>
                     <div className="blur-gate-title">Turn Insight<br/>Into Action</div>
                     <div className="blur-gate-sub">AI-generated step-by-step plans with time estimates and dollar values. Optional daily SMS reminders at 8pm to keep you moving.</div>
-                    <button className="btn bp" style={{width:'auto'}} onClick={handleUpgrade} disabled={checkoutLoading}>{checkoutLoading ? 'Redirecting...' : 'Upgrade — $9.98/mo'}</button>
+                    <button className="btn bp" style={{width:'auto'}} onClick={handleUpgrade} disabled={checkoutLoading}>{checkoutLoading ? 'Redirecting...' : 'Upgrade â $9.98/mo'}</button>
                     {checkoutError && <div style={{fontSize:'.72rem',color:'#e05252'}}>{checkoutError}</div>}
                     <div className="blur-gate-price">Cancel anytime. Instant access.</div>
                   </div>
@@ -1228,7 +1223,7 @@ Keep replies short, friendly, and helpful. No emojis.`,
 
         </div>{/* end .pg */}
 
-        {/* ── CUSTOMER SERVICE BUBBLE ──────────────────────────────────── */}
+        {/* ââ CUSTOMER SERVICE BUBBLE ââââââââââââââââââââââââââââââââââââ */}
         <div className="cs-bubble">
           {csOpen && (
             <div className="cs-panel">
