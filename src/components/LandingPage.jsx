@@ -80,7 +80,7 @@ body{background:#0e0e0e;}
 .lp-footer-note{font-size:.65rem;color:#333;letter-spacing:.08em;}
 `;
 
-export default function LandingPage({ onSignIn }) {
+export default function LandingPage({ onSignIn, onUpgrade }) {
   return (
     <>
       <style>{CSS}</style>
@@ -187,7 +187,7 @@ export default function LandingPage({ onSignIn }) {
                   <li>A running total of money saved and revenue unlocked</li>
                 </ul>
                 <p className="lp-plan-note">Most users find more than their subscription cost in the first week.</p>
-                <button className="lp-cta lp-cta--wide" onClick={onSignIn}>Get Started Free</button>
+                <button className="lp-cta lp-cta--wide" onClick={onUpgrade || onSignIn}>Start Premium</button>
               </div>
             </div>
           </div>
