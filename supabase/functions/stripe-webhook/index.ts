@@ -39,13 +39,19 @@ Deno.serve(async (req) => {
   }
 
   try {
+    console.log('Processing event:', event.type, event.id);
+
     switch (event.type) {
 
       case 'checkout.session.completed': {
         const session = event.data.object;
         const userId  = session.metadata?.user_id;
-        if (!userId) break;
-        await supabase.from('subscriptions').upsert({
+        console.log('checkout.session.completed — user_id:', userId, 'customer:', session.customer, 'subscription:', session.subscription);
+        if (!userId) {
+          console.error('checkout.session.completed — NO user_id in metadata, skipping');
+          break;
+        }
+        const { data, error } = await supabase.from('subscriptions').upsert({
           user_id:                 userId,
           stripe_customer_id:      session.customer,
           stripe_subscription_id:  session.subscription,
@@ -53,6 +59,14 @@ Deno.serve(async (req) => {
           current_period_end:      null,
           updated_at:              new Date().toISOString(),
         }, { onConflict: 'user_id' });
+        if (error) {
+          console.error('checkout.session.completed — Supabase upsert FAILED:', JSON.stringify(error));
+          return new Response(JSON.stringify({ error: error.message }), {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+        console.log('checkout.session.completed — subscription activated for user', userId);
         break;
       }
 
@@ -61,34 +75,50 @@ Deno.serve(async (req) => {
         const status = sub.status === 'active' ? 'active'
                      : sub.status === 'canceled' ? 'canceled'
                      : 'past_due';
-        await supabase.from('subscriptions')
+        console.log('customer.subscription.updated — sub:', sub.id, 'status:', status);
+        const { error } = await supabase.from('subscriptions')
           .update({
             status,
             current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
             updated_at:         new Date().toISOString(),
           })
           .eq('stripe_subscription_id', sub.id);
+        if (error) {
+          console.error('customer.subscription.updated — Supabase update FAILED:', JSON.stringify(error));
+          return new Response(JSON.stringify({ error: error.message }), {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
         break;
       }
 
       case 'customer.subscription.deleted': {
         const sub = event.data.object;
-        await supabase.from('subscriptions')
+        console.log('customer.subscription.deleted — sub:', sub.id);
+        const { error } = await supabase.from('subscriptions')
           .update({ status: 'canceled', updated_at: new Date().toISOString() })
           .eq('stripe_subscription_id', sub.id);
+        if (error) {
+          console.error('customer.subscription.deleted — Supabase update FAILED:', JSON.stringify(error));
+        }
         break;
       }
 
       case 'invoice.payment_failed': {
         const invoice = event.data.object;
-        await supabase.from('subscriptions')
+        console.log('invoice.payment_failed — sub:', invoice.subscription);
+        const { error } = await supabase.from('subscriptions')
           .update({ status: 'past_due', updated_at: new Date().toISOString() })
           .eq('stripe_subscription_id', invoice.subscription);
+        if (error) {
+          console.error('invoice.payment_failed — Supabase update FAILED:', JSON.stringify(error));
+        }
         break;
       }
 
       default:
-        console.log('Unhandled event type: ' + event.type);
+        console.log('Unhandled event type:', event.type);
     }
 
     return new Response(JSON.stringify({ received: true }), {
