@@ -60,7 +60,7 @@ body{background:#0e0e0e;}
 .lp-plan-price span{font-size:.75rem;font-weight:400;color:#555;letter-spacing:.06em;}
 .lp-plan-items{list-style:none;display:flex;flex-direction:column;gap:.7rem;margin-bottom:1.5rem;}
 .lp-plan-items li{font-size:.85rem;color:#777;padding-left:1.1rem;position:relative;line-height:1.4;}
-.lp-plan-items li::before{content:'â';position:absolute;left:0;color:#333;}
+.lp-plan-items li::before{content:'\2014';position:absolute;left:0;color:#333;}
 .lp-plan--premium .lp-plan-items li{color:#bbb;}
 .lp-plan--premium .lp-plan-items li::before{color:#f5a623;}
 .lp-plan-note{font-size:.75rem;color:#555;font-style:italic;line-height:1.5;margin-bottom:1.25rem;}
@@ -96,7 +96,7 @@ export default function LandingPage({ onSignIn }) {
           <div className="lp-inner">
             <div className="lp-eyebrow">Business Intelligence for Small Business</div>
             <h1 className="lp-h1">You work too hard<br/>to not know <span>where your<br/>money goes.</span></h1>
-            <p className="lp-hero-sub">Most small business owners have no idea which 20% of their effort produces 80% of their results. TradeStack finds it â in minutes, not months.</p>
+            <p className="lp-hero-sub">Most small business owners have no idea which 20% of their effort produces 80% of their results. TradeStack finds it {'\u2014'} in minutes, not months.</p>
             <button className="lp-cta" onClick={onSignIn}>Sign Up Free</button>
             <p className="lp-hero-note">No credit card required. Takes about three minutes to set up.</p>
           </div>
@@ -107,7 +107,7 @@ export default function LandingPage({ onSignIn }) {
           <div className="lp-inner">
             <div className="lp-eyebrow">The Problem</div>
             <h2 className="lp-h2">You didn't start a business to spend your evenings lost in numbers you can't make sense of.</h2>
-            <p className="lp-p">You know something's off. Maybe margins feel thin. Maybe revenue looks fine on paper but the account never quite catches up. Maybe you've thought about getting strategic â a real plan, not just survival mode â but between the jobs, the calls, the invoices, and the people, there's never a clean hour to think.</p>
+            <p className="lp-p">You know something's off. Maybe margins feel thin. Maybe revenue looks fine on paper but the account never quite catches up. Maybe you've thought about getting strategic {'\u2014'} a real plan, not just survival mode {'\u2014'} but between the jobs, the calls, the invoices, and the people, there's never a clean hour to think.</p>
             <p className="lp-p">And now everyone's talking about AI. Another thing to learn. Another thing to fall behind on.</p>
             <p className="lp-p"><strong>You're not behind. You just haven't had the right tool yet.</strong></p>
           </div>
@@ -142,14 +142,14 @@ export default function LandingPage({ onSignIn }) {
                 <div className="lp-step-num">02</div>
                 <div>
                   <div className="lp-h3">See your business clearly</div>
-                  <p className="lp-p">TradeStack builds your Lean Canvas â a single-page picture of your entire business strategy. Every section is scored. Every score points to something real: a leak, a gap, or an opportunity waiting to be taken.</p>
+                  <p className="lp-p">TradeStack builds your Lean Canvas {'\u2014'} a single-page picture of your entire business strategy. Every section is scored. Every score points to something real: a leak, a gap, or an opportunity waiting to be taken.</p>
                 </div>
               </div>
               <div className="lp-step">
                 <div className="lp-step-num">03</div>
                 <div>
                   <div className="lp-h3">Take action on what actually matters</div>
-                  <p className="lp-p">See exactly where money is leaking and where growth is waiting. Pick what to fix. TradeStack turns it into a step-by-step plan with time estimates and SMS check-ins to keep you moving â one action at a time.</p>
+                  <p className="lp-p">See exactly where money is leaking and where growth is waiting. Pick what to fix. TradeStack turns it into a step-by-step plan with time estimates and SMS check-ins to keep you moving {'\u2014'} one action at a time.</p>
                 </div>
               </div>
             </div>
@@ -163,13 +163,13 @@ export default function LandingPage({ onSignIn }) {
             <h2 className="lp-h2">Start free. Upgrade when you're ready.</h2>
             <div className="lp-plans-grid">
               <div className="lp-plan">
-                <div className="lp-plan-label">Free â Always</div>
+                <div className="lp-plan-label">Free {'\u2014'} Always</div>
                 <div className="lp-plan-price">$0 <span>/ forever</span></div>
                 <ul className="lp-plan-items">
                   <li>Your Lean Canvas, built from your numbers</li>
                   <li>A full picture of your business strategy in one place</li>
                   <li>Edit and refine every section yourself</li>
-                  <li>See your scores â and know something's there</li>
+                  <li>See your scores {'\u2014'} and know something's there</li>
                 </ul>
                 <button className="lp-cta lp-cta--wide lp-cta--ghost" onClick={onSignIn}>Get Started Free</button>
               </div>
