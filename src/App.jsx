@@ -176,6 +176,15 @@ textarea{resize:vertical;min-height:80px;}
 .pg-sub{font-size:.85rem;color:#777;line-height:1.6;max-width:340px;margin:0 auto 1.25rem;}
 .pg-price{font-family:'Barlow Condensed',sans-serif;font-size:.78rem;color:#555;margin-top:.5rem;}
 
+/* BLUR GATE (free-user preview) */
+.blur-gate-wrap{position:relative;overflow:hidden;border-radius:3px;}
+.blur-gate-content{filter:blur(7px) brightness(.7);pointer-events:none;user-select:none;min-height:320px;}
+.blur-gate-overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.9rem;background:rgba(14,14,14,.45);padding:1.5rem;text-align:center;}
+.blur-gate-eyebrow{font-family:'Barlow Condensed',sans-serif;font-size:.62rem;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:#f5a623;}
+.blur-gate-title{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:1.25rem;letter-spacing:.04em;text-transform:uppercase;color:#e8e0d4;line-height:1.15;}
+.blur-gate-sub{font-size:.8rem;color:#aaa;line-height:1.55;max-width:300px;}
+.blur-gate-price{font-family:'Barlow Condensed',sans-serif;font-size:.72rem;color:#555;}
+
 /* CUSTOMER SERVICE BUBBLE */
 .cs-bubble{position:fixed;bottom:1.25rem;right:1.25rem;z-index:300;}
 .cs-btn{width:48px;height:48px;background:#f5a623;border:none;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:.75rem;letter-spacing:.06em;color:#0e0e0e;box-shadow:0 2px 12px rgba(0,0,0,.4);transition:all .15s;}
@@ -246,14 +255,21 @@ export default function App() {
 
   // ── STRIPE CHECKOUT ──────────────────────────────────────────────────────
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [checkoutError,   setCheckoutError]   = useState(null);
 
   const handleUpgrade = async () => {
     setCheckoutLoading(true);
+    setCheckoutError(null);
     try {
       const data = await callEdge('create-checkout', {}, session);
-      if (data?.url) window.location.href = data.url;
+      if (data?.url) {
+        window.location.href = data.url;
+        return; // don't reset loading — user is being redirected
+      }
+      setCheckoutError(data?.error || 'Could not start checkout. Please try again.');
     } catch(e) {
       console.error('Checkout error:', e);
+      setCheckoutError('Could not connect to payment service. Please try again.');
     }
     setCheckoutLoading(false);
   };
@@ -816,10 +832,12 @@ Keep replies short, friendly, and helpful. No emojis.`,
               <div className="fg">
                 <label>Cost of Goods ($)</label>
                 <input type="number" inputMode="numeric" value={p.cogs} onChange={e=>setP(v=>({...v,cogs:e.target.value}))} placeholder="180000"/>
+                <span style={{fontSize:'.68rem',color:'#555',lineHeight:1.4}}>Direct job costs: materials, subcontractors, labor per job. What you spend to deliver the work.</span>
               </div>
               <div className="fg">
                 <label>Operating Expenses ($)</label>
                 <input type="number" inputMode="numeric" value={p.opEx} onChange={e=>setP(v=>({...v,opEx:e.target.value}))} placeholder="95000"/>
+                <span style={{fontSize:'.68rem',color:'#555',lineHeight:1.4}}>Overhead costs to run the business: insurance, truck payments, software, office, owner salary.</span>
               </div>
               <div className="fg">
                 <label>Net Income ($)</label>
@@ -838,6 +856,7 @@ Keep replies short, friendly, and helpful. No emojis.`,
                   <div style={{fontSize:'.8rem',color:'#666'}}>Unlock Opportunities, Goals, and SMS reminders. $9.98/month.</div>
                 </div>
                 <button className="btn bp" style={{width:'auto',whiteSpace:'nowrap'}} onClick={handleUpgrade} disabled={checkoutLoading}>{checkoutLoading ? 'Redirecting...' : 'Upgrade — $9.98/mo'}</button>
+                {checkoutError && <div style={{fontSize:'.75rem',color:'#e05252',marginTop:'.3rem'}}>{checkoutError}</div>}
               </div>
             )}
 
@@ -891,9 +910,6 @@ Keep replies short, friendly, and helpful. No emojis.`,
                       );
                     })}
                   </div>
-                  <div className="regen">
-                    <button className="btn bg" onClick={genCanvas}>Regenerate Canvas</button>
-                  </div>
                 </>
             }
 
@@ -910,12 +926,43 @@ Keep replies short, friendly, and helpful. No emojis.`,
           {/* ── OPPORTUNITIES TAB ──────────────────────────────────────── */}
           {tab==="opportunities" && <>
             {!isPremium
-              ? <div className="premium-gate">
-                  <div className="pg-eyebrow">Premium Feature</div>
-                  <div className="pg-title">See What Matters</div>
-                  <div className="pg-sub">Your canvas has been scored. Upgrade to see the specific opportunities where 20% of your effort will drive 80% of your results.</div>
-                  <button className="btn bp" style={{width:'auto'}} onClick={handleUpgrade} disabled={checkoutLoading}>{checkoutLoading ? 'Redirecting...' : 'Upgrade — $9.98/mo'}</button>
-                  <div className="pg-price">Cancel anytime. Instant access.</div>
+              ? <div className="blur-gate-wrap">
+                  <div className="blur-gate-content">
+                    {[
+                      {label:"Revenue Streams", cards:[
+                        {title:"Introduce a recurring maintenance contract", impact:"High", insight:"Trades businesses with annual service agreements generate 30–40% more predictable revenue."},
+                        {title:"Add a premium response tier for urgent calls", impact:"Medium", insight:"Customers who need same-day service will pay a 20–40% premium. A Priority Response offering captures high-margin emergency revenue."},
+                      ]},
+                      {label:"Problem", cards:[
+                        {title:"Address your highest-volume pain point first", impact:"High", insight:"Solving even 50% of your top pain point could free up 5+ hours per week and improve your close rate on repeat business."},
+                      ]},
+                      {label:"Key Metrics", cards:[
+                        {title:"Track job profitability by service type", impact:"Medium", insight:"Most trade business owners don't know which jobs actually make money. Tracking gross profit per job type usually reveals one service driving 60%+ of real profit."},
+                      ]},
+                    ].map((group) => (
+                      <div key={group.label} className="opp-section">
+                        <div className="opp-section-title">{group.label}</div>
+                        {group.cards.map((opp, i) => (
+                          <div key={i} className="opp-card">
+                            <div className="opp-card-top">
+                              <div className="opp-title">{opp.title}</div>
+                              <div className={`opp-impact imp-${opp.impact[0]}`}>{opp.impact}</div>
+                            </div>
+                            <div className="opp-insight">{opp.insight}</div>
+                            <button className="opp-cta">Make it a Goal</button>
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="blur-gate-overlay">
+                    <div className="blur-gate-eyebrow">Premium Feature</div>
+                    <div className="blur-gate-title">See What Matters<br/>For Your Business</div>
+                    <div className="blur-gate-sub">AI-generated opportunities built from your actual canvas — showing exactly where 20% of effort drives 80% of results.</div>
+                    <button className="btn bp" style={{width:'auto'}} onClick={handleUpgrade} disabled={checkoutLoading}>{checkoutLoading ? 'Redirecting...' : 'Upgrade — $9.98/mo'}</button>
+                    {checkoutError && <div style={{fontSize:'.72rem',color:'#e05252'}}>{checkoutError}</div>}
+                    <div className="blur-gate-price">Cancel anytime. Instant access.</div>
+                  </div>
                 </div>
               : oppLoading
                 ? <div className="loader"><div className="lbar"/><div className="llbl">Generating opportunities...</div></div>
@@ -952,12 +999,57 @@ Keep replies short, friendly, and helpful. No emojis.`,
           {/* ── GOALS TAB ──────────────────────────────────────────────── */}
           {tab==="goals" && <>
             {!isPremium
-              ? <div className="premium-gate">
-                  <div className="pg-eyebrow">Premium Feature</div>
-                  <div className="pg-title">Turn Insight Into Action</div>
-                  <div className="pg-sub">Move opportunities into goals with AI-generated action steps, dollar value estimates, and optional daily SMS reminders at 8pm.</div>
-                  <button className="btn bp" style={{width:'auto'}} onClick={handleUpgrade} disabled={checkoutLoading}>{checkoutLoading ? 'Redirecting...' : 'Upgrade — $9.98/mo'}</button>
-                  <div className="pg-price">Cancel anytime. Instant access.</div>
+              ? <div className="blur-gate-wrap">
+                  <div className="blur-gate-content">
+                    <div className="money-unlocked"><span className="mu-label">Money Unlocked</span><span className="mu-value">$18,500</span></div>
+                    {[
+                      {title:"Introduce a recurring maintenance contract", status:"In Progress", value:9200, steps:[
+                        {text:"Draft a simple 1-page service agreement template", time:"2 hours", done:true},
+                        {text:"Identify your top 20 repeat customers to offer first", time:"1 hour", done:true},
+                        {text:"Call or text each customer with the offer", time:"3 hours", done:false},
+                        {text:"Set up auto-renewal reminders in your calendar", time:"30 min", done:false},
+                      ]},
+                      {title:"Track job profitability by service type", status:"Not Started", value:9300, steps:[
+                        {text:"Create a simple spreadsheet with job type, revenue, material cost, and hours", time:"1 hour", done:false},
+                        {text:"Log every job for 30 days", time:"ongoing", done:false},
+                        {text:"Review results and identify your most profitable service", time:"1 hour", done:false},
+                      ]},
+                    ].map((goal, i) => (
+                      <div key={i} className="goal-card">
+                        <div className="goal-top"><input className="goal-title-input" value={goal.title} readOnly/></div>
+                        <div className="goal-meta">
+                          <span className={`goal-status ${goal.status==='In Progress'?'gs-ip':'gs-ns'}`}>{goal.status}</span>
+                          <div className="goal-value-wrap">
+                            <span className="goal-value-label">Est. Value</span>
+                            <span style={{color:'#4caf82',fontSize:'.8rem'}}>$</span>
+                            <input className="goal-value-input" type="number" value={goal.value} readOnly/>
+                            <span className="goal-value-label">/yr</span>
+                          </div>
+                        </div>
+                        <div className="goal-steps">
+                          {goal.steps.map((step, j) => (
+                            <div key={j} className="step-row">
+                              <button className={`step-check ${step.done?'done':''}`}>{step.done?'done':''}</button>
+                              <input className="step-text-input" value={step.text} readOnly style={{textDecoration:step.done?'line-through':''}}/>
+                              <span className="step-time">{step.time}</span>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="sms-toggle-row">
+                          <span className="sms-toggle-label">Daily SMS Reminder (8pm)</span>
+                          <label className="toggle"><input type="checkbox" readOnly/><span className="toggle-slider"/></label>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="blur-gate-overlay">
+                    <div className="blur-gate-eyebrow">Premium Feature</div>
+                    <div className="blur-gate-title">Turn Insight<br/>Into Action</div>
+                    <div className="blur-gate-sub">AI-generated step-by-step plans with time estimates and dollar values. Optional daily SMS reminders at 8pm to keep you moving.</div>
+                    <button className="btn bp" style={{width:'auto'}} onClick={handleUpgrade} disabled={checkoutLoading}>{checkoutLoading ? 'Redirecting...' : 'Upgrade — $9.98/mo'}</button>
+                    {checkoutError && <div style={{fontSize:'.72rem',color:'#e05252'}}>{checkoutError}</div>}
+                    <div className="blur-gate-price">Cancel anytime. Instant access.</div>
+                  </div>
                 </div>
               : <>
                   {/* Money Unlocked */}
