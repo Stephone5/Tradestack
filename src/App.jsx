@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from './supabaseClient';
 import LandingPage from './components/LandingPage';
 
-// ââ HELPERS ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── HELPERS ────────────────────────────────────────────────────────────────
 function jp(text) {
   try { return JSON.parse(text.replace(/```json\n?|```\n?/g,"").trim()); }
   catch { return null; }
@@ -14,7 +14,7 @@ async function callEdge(fn, body, session) {
   return data;
 }
 
-// ââ CANVAS CELL DEFINITIONS ââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── CANVAS CELL DEFINITIONS ────────────────────────────────────────────────
 const CELLS = [
   { k:"problem",   l:"Problem" },
   { k:"solution",  l:"Solution" },
@@ -27,7 +27,7 @@ const CELLS = [
   { k:"cost",      l:"Cost Structure" },
 ];
 
-// ââ STYLES âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── STYLES ─────────────────────────────────────────────────────────────────
 const CSS = `
 @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@300;400;500&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
@@ -105,7 +105,7 @@ textarea{resize:vertical;min-height:80px;}
 .score-tip strong{color:#f5a623;font-family:'Barlow Condensed',sans-serif;font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;display:block;margin-bottom:.2rem;}
 
 /* FIN CARDS */
-.fc{background:#141414;border:1px solid #222;border-radius:3px;padding:.9rem;}
+.fc{background:#141414;border:1px solid #222;padding:.9rem;border-radius:3px;}
 .fc-lbl{font-family:'Barlow Condensed',sans-serif;font-size:.63rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#666;margin-bottom:.25rem;}
 .fc-val{font-family:'Barlow Condensed',sans-serif;font-size:1.6rem;font-weight:700;line-height:1;}
 .pos{color:#4caf82;}.neg{color:#e05252;}.neu{color:#e8e0d4;}
@@ -130,10 +130,10 @@ textarea{resize:vertical;min-height:80px;}
 .opp-impact{font-family:'Barlow Condensed',sans-serif;font-size:.58rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:.15rem .4rem;border-radius:2px;flex-shrink:0;}
 .imp-H{background:#1a3a2a;color:#4caf82;}.imp-M{background:#3a2f1a;color:#f5a623;}.imp-L{background:#222;color:#666;}
 .opp-insight{font-size:.82rem;line-height:1.55;color:#999;margin-bottom:.75rem;}
-.opp-cta{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;background:transparent;border:1px solid #f5a623;color:#f5a623;cursor:pointer;padding:.5rem 1rem;border-radius:3px;transition:all .15s;}
+.opp-cta{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;background:transparent;border:1px solid #f5a623;color:#f5a623;padding:.5rem 1rem;border-radius:3px;cursor:pointer;transition:all .15s;}
 .opp-cta:hover{background:#f5a623;color:#0e0e0e;}
 .opp-migrated{text-align:center;padding:.65rem;color:#4caf82;font-family:'Barlow Condensed',sans-serif;font-size:.75rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;border:1px solid #1a3a2a;background:#0e1e16;border-radius:3px;animation:fadein .3s ease;}
-@keyframes fadein{from{opacity:0;mto{opacity:1;}}
+@keyframes fadein{from{opacity:0;}to{opacity:1;}}
 
 /* GOALS */
 .money-unlocked{background:#141414;border:1px solid #1a3a2a;border-radius:3px;padding:.85rem 1rem;margin-bottom:1.25rem;display:flex;justify-content:space-between;align-items:center;}
@@ -199,52 +199,52 @@ textarea{resize:vertical;min-height:80px;}
 .err{font-size:.78rem;color:#e05252;margin-top:.3rem;}
 `;
 
-// ââ MAIN APP âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── MAIN APP ────────────────────────────────────────────────────────────────
 export default function App() {
 
-  // ââ AUTH ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+  // ── AUTH ────────────────────────────────────────────────────────────────
   const [session,      setSession]      = useState(null);
   const [authLoading,  setAuthLoading]  = useState(true);
 
-  // ââ PREMIUM âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+  // ── PREMIUM ─────────────────────────────────────────────────────────────
   const [isPremium,    setIsPremium]    = useState(false);
 
-  // ââ NAV âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+  // ── NAV ─────────────────────────────────────────────────────────────────
   const [tab,          setTab]          = useState("input");
 
-  // ââ BUSINESS PROFILE âââââââââââââââââââââââââââââââââââââââââââââââââââââ
+  // ── BUSINESS PROFILE ────────────────────────────────────────────────────
   const [p, setP] = useState({
     bizName:"", trade:"", location:"", yearsOp:"", employees:"",
-    anuualRev:"", cogs:"", opEx:"", netIncome:"",
+    annualRev:"", cogs:"", opEx:"", netIncome:"",
     topService:"", avgJobValue:"", painPoints:"",
     phoneNumber:"", timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "America/New_York"
   });
   const [submitted,    setSubmitted]    = useState(false);
   const [saving,       setSaving]       = useState(false);
 
-  // ââ CANVAS ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+  // ── CANVAS ──────────────────────────────────────────────────────────────
   const [canvas,       setCanvas]       = useState({});
   const [canvasScores, setCanvasScores] = useState({});
   const [cLoading,     setCLoading]     = useState(false);
   const [scoreTooltip, setScoreTooltip] = useState(null); // {key, x, y}
 
-  // ââ OPPORTUNITIES ââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+  // ── OPPORTUNITIES ────────────────────────────────────────────────────────
   const [opps,         setOpps]         = useState([]);
   const [oppLoading,   setOppLoading]   = useState(false);
   const [migratedMsg,  setMigratedMsg]  = useState({}); // {oppId: true}
 
-  // ââ GOALS ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+  // ── GOALS ────────────────────────────────────────────────────────────────
   const [goals,        setGoals]        = useState([]);
   const [goalSteps,    setGoalSteps]    = useState({}); // {goalId: [steps]}
 
-  // ââ CUSTOMER SERVICE âââââââââââââââââââââââââââââââââââââââââââââââââââââ
+  // ── CUSTOMER SERVICE ─────────────────────────────────────────────────────
   const [csOpen,       setCsOpen]       = useState(false);
   const [csMessages,   setCsMessages]   = useState([]);
   const [csInput,      setCsInput]      = useState("");
   const [csLoading,    setCsLoading]    = useState(false);
   const csEndRef = useRef(null);
 
-  // ââ STRIPE CHECKOUT ââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+  // ── STRIPE CHECKOUT ──────────────────────────────────────────────────────
   const [checkoutLoading, setCheckoutLoading] = useState(false);
 
   const handleUpgrade = async () => {
@@ -258,7 +258,7 @@ export default function App() {
     setCheckoutLoading(false);
   };
 
-  // ââ COMPUTED âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+  // ── COMPUTED ─────────────────────────────────────────────────────────────
   const moneyUnlocked = goals
     .filter(g => g.status === "completed")
     .reduce((sum, g) => sum + (parseFloat(g.estimated_value) || 0), 0);
@@ -273,7 +273,7 @@ export default function App() {
     ? ((parseFloat(p.netIncome) / parseFloat(p.annualRev)) * 100).toFixed(1)
     : null;
 
-  // ââ AUTH LISTENER ââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+  // ── AUTH LISTENER ────────────────────────────────────────────────────────
   useEffect(() => {
     const hashHasToken = window.location.hash.includes('access_token');
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, s) => {
@@ -289,63 +289,58 @@ export default function App() {
     return () => { subscription.unsubscribe(); clearTimeout(t); };
   }, []);
 
-  // ââ LOAD ALL USER DATA ON LOGIN ââââââââââââââââââââââââââââââââââââââââââ(ÕÍÐ  ¤ôøì(¥ ÍÍÍ¥½¸¤ÉÑÕÉ¸ì(±½AÉ½¥± ¤ì(±½MÕÍÉ¥ÁÑ¥½¸ ¤ì(±½¹ÙÌ ¤ì(±½=ÁÁ½ÉÑÕ¹¥Ñ¥Ì ¤ì(±½½±Ì ¤ì(±½M%¥ÍÑ½Éä ¤ì(ô°mÍÍÍ¥½¹t¤ì((Íå¹Õ¹Ñ¥½¸±½AÉ½¥± ¤ì(½¹ÍÐìÑôôÝ¥ÐÍÕÁÍ¹É½´ ÕÍ¥¹ÍÍÌ¤(¹Í±Ð ¨¤¹Ä ÕÍÉ}¥°ÍÍÍ¥½¸¹ÕÍÈ¹¥¤¹Í¥¹± ¤ì(¥¡Ñ¤ì(ÍÑ@¡ì(¥é9µèÑ¹¥é}¹µñð°(ÑÉèÑ¹ÑÉñð°(±½Ñ¥½¸èÑ¹±½Ñ¥½¸ñð°(åÉÍ=ÀèÑ¹åÉÍ}½Àñð°(µÁ±½åÌèÑ¹µÁ±½åÌñð°(¹¹Õ±IØèÑ¹¹¹Õ±}ÉØñð°(½ÌèÑ¹½Ìñð°(½ÁàèÑ¹½Á}àñð°(¹Ñ%¹½µèÑ¹¹Ñ}¥¹½µñð°(Ñ½ÁMÉÙ¥èÑ¹Ñ½Á}ÍÉÙ¥ñð°(Ù)½Y±ÕèÑ¹Ù}©½}Ù°ñð°(Á¥¹A½¥¹ÑÌèÑ¹Á¥¹}Á½¥¹ÑÌñð°(Á¡½¹9ÕµÈèÑ¹Á¡½¹}¹ÕµÉñð°(Ñ¥µé½¹èÑ¹Ñ¥µé½¹ñð%¹Ñ°¹ÑQ¥µ½ÉµÐ ¤¹ÉÍ½±Ù=ÁÑ¥½¹Ì ¤¹Ñ¥µi½¹°(ô¤ì(ÍÑMÕµ¥ÑÑ¡ÑÉÕ¤ì(ô(ô((Íå¹Õ¹Ñ¥½¸±½MÕÍÉ¥ÁÑ¥½¸ ¤ì(½¹ÍÐìÑôôÝ¥ÐÍÕÁÍ¹É½´ ÍÕÍÉ¥ÁÑ¥½¹Ì¤(¹Í±Ð ÍÑÑÕÌ¤¹Ä ÕÍÉ}¥°ÍÍÍ¥½¸¹ÕÍÈ¹¥¤¹Í¥¹± ¤ì(ÍÑ%ÍAÉµ¥Õ´¡Ñü¹ÍÑÑÕÌôôôÑ¥Ù¤ì(ô((Íå¹Õ¹Ñ¥½¸±½¹ÙÌ ¤ì(½¹ÍÐìÑôôÝ¥ÐÍÕÁÍ¹É½´ ¹ÙÍ}±±Ì¤(¹Í±Ð ¨¤¹Ä ÕÍÉ}¥°ÍÍÍ¥½¸¹ÕÍÈ¹¥¤ì(¥¡Ñü¹±¹Ñ ¤ì(½¹ÍÐ±±Ìôíô°Í½ÉÌôíôì(Ñ¹½É ¡É½Üôøì(±±ÍmÉ½Ü¹±±}­åtôÉ½Ü¹½¹Ñ¹Ðì(Í½ÉÍmÉ½Ü¹±±}­åtôìÍ½ÉèÉ½Ü¹Í½É°ÁÉÙ¥ÜèÉ½Ü¹Í½É}ÁÉÙ¥Üôì(ô¤ì(ÍÑ¹ÙÌ¡±±Ì¤ì(ÍÑ¹ÙÍM½ÉÌ¡Ì½ÉÌ¤ì(ô(ô((Íå¹Õ¹Ñ¥½¸±½=ÁÁ½ÉÑÕ¹¥Ñ¥Ì ¤ì(½¹ÍÐìÑôôÝ¥ÐÍÕÁÍ¹É½´ ½ÁÁ½ÉÑÕ¹¥Ñ¥Ì¤(¹Í±Ð ¨¤¹Ä ÕÍÉ}¥°ÍÍÍ¥½¸¹ÕÍÈ¹¥¤(¹Ä µ¥ÉÑ°±Í¤¹½ÉÈ Í½ÉÑ}½ÉÈ¤ì(ÍÑ=ÁÁÌ¡Ññðmt¤ì(ô((Íå¹Õ¹Ñ¥½¸±½½±Ì ¤ì(½¹ÍÐìÑèÑôôÝ¥ÐÍÕÁÍ¹É½´ ½±Ì¤(¹Í±Ð ¨¤¹Ä ÕÍÉ}¥°ÍÍÍ¥½¸¹ÕÍÈ¹¥¤¹½ÉÈ Í½ÉÑ}½ÉÈ¤ì(¥ Ñ¤ÉÑÕÉ¸ì(ÍÑ½±Ì¡Ñ¤ì(½¹ÍÐÍÑÁÍ5Àôíôì(Ý¥ÐAÉ½µ¥Í¹±°¡Ñ¹µÀ¡Íå¹ôøì(½¹ÍÐìÑèÍÑôôÝ¥ÐÍÕÁÍ¹É½´ ½±}ÍÑÁÌ¤(¹Í±Ð ¨¤¹Ä ½±}¥°¹¥¤¹½ÉÈ Í½ÉÑ}½ÉÈ¤ì(ÍÑÁÍ5Ám¹¥tôÍÑñðmtì(ô¤¤ì(ÍÑ½±MÑÁÌ¡ÍÑÁÍ5À¤ì(ô((Íå¹Õ¹Ñ¥½¸±½M!¥ÍÑ½Éä ¤ì(½¹ÍÐìÑôôÝ¥ÐÍÕÁÍ¹É½´ Í}½¹ÙÉÍÑ¥½¹Ì¤(¹Í±Ð É½±±½¹Ñ¹Ð¤¹Ä ÕÍÉ}¥°ÍÍÍ¥½¸¹ÕÍÈ¹¥¤(¹½ÉÈ ÉÑ}Ð¤¹±¥µ¥Ð ÐÀ¤ì(¥¡Ñü¹±¹Ñ ¤ÍÑÍ5ÍÍÌ¡Ñ¤ì(ô((¼¼RR UQ Q%=9LRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR (½¹ÍÐÍ¥¹%¹]¥Ñ¡½½±ôÍå¹ ¤ôøì(½¹ÍÐìÉÉ½ÈôôÝ¥ÐÍÕÁÍ¹ÕÑ ¹Í¥¹%¹]¥Ñ¡=ÕÑ ¡ì(ÁÉ½Ù¥Èè½½±°(½ÁÑ¥½¹ÌèìÉ¥ÉÑQ¼èÝ¥¹½Ü¹±½Ñ¥½¸¹½É¥¥¸ô(ô¤ì(¥¡ÉÉ½È¤½¹Í½±¹ÉÉ½È 1½¥¸ÉÉ½Èè°ÉÉ½È¹µÍÍ¤ì(ôì((½¹ÍÐÍ¥¹=ÕÐôÍå¹ ¤ôøì(Ý¥ÐÍÕÁÍ¹ÕÑ ¹Í¥¹=ÕÐ ¤ì(ÍÑMÍÍ¥½¸¡¹Õ±°¤ì(ÍÑ@¡ì¥é9µè±ÑÉè±±½Ñ¥½¸è±åÉÍ=Àè±µÁ±½åÌè°(¹¹Õ±IØè±½Ìè ±½Áàè±¹Ñ%¹½µè±Ñ½ÁMÉÙ¥è°(Ù)½Y±Õè±Á¥¹A½¥¹ÑÌè±Á¡½¹9ÕµÈè°(Ñ¥µé½¹è%¹Ñ°¹ÑQ¥µ½ÉµÐ ¤¹ÉÍ½±Ù=ÁÑ¥½¹Ì ¤¹Ñ¥µi½¹ô¤ì(ÍÑMÕµ¥ÑÑ¡±Í¤ìÍÑ¹ÙÌ¡íô¤ìÍÑ¹ÙÍM½ÉÌ¡íô¤ì(ÍÑ=ÁÁÌ¡mt¤ìÍÑ½±Ì¡mt¤ìÍÑ½±MÑÁÌ¡íô¤ì(ÍÑÍ5ÍÍÌ¡mt¤ìÍÑQ ¥¹ÁÕÐ¤ìÍÑ%ÍAÉµ¥Õ´¡±Í¤ì(ôì((¼¼RR MYAI=%1RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR (½¹ÍÐÍÙAÉ½¥±ôÕÍ±±¬¡Íå¹ ¤ôøì(¥ ÍÍÍ¥½¸¤ÉÑÕÉ¸ì(ÍÑMÙ¥¹¡ÑÉÕ¤ì(Ý¥ÐÍÕÁÍ¹É½´ ÕÍ¥¹ÍÍÌ¤¹ÕÁÍÉÐ¡ì(ÕÍÉ}¥èÍÍÍ¥½¸¹ÕÍÈ¹¥°(¥é}¹µèÀ¹¥é9µ°(ÑÉèÀ¹ÑÉ°(±½Ñ¥½¸èÀ¹±½Ñ¥½¸°(åÉÍ}½ÀèÁÉÍ%¹Ð¡À¹åÉÍ=À¤ñð¹Õ±°°(µÁ±½åÌèÁÉÍ%¹Ð¡À¹µÁ±½åÌ¤ñð¹Õ±°°(¹¹Õ±}ÉØèÁÉÍ±½Ð¡À¹¹ÕÕ±IØ¤ñð¹Õ±°°(½ÌèÁÉÍ±½Ð¡À¹½Ì¤ñð¹Õ±°°(½Á}àèÁÉÍ±½Ð¡À¹½Áà¤ñð¹Õ±°°(¹Ñ}¥¹½µèÁÉÍ±½Ð¡À¹¹Ñ%¹½µ¤ñð¹Õ±°°(Ñ½Á}ÍÉÙ¥èÀ¹Ñ½ÁMÉÙ¥°(Ù}©½}Ù°èÁÉÍ±½Ð¡À¹Ù)½Y±Õ¥ñð¹Õ±°°(Á¥¹}Á½¥¹ÑÌèÀ¹Á¥¹A½¥¹ÑÌ°(Á¡½¹}¹ÕµÈèÀ¹Á¡½¹9ÕµÈ°(Ñ¥µé½¹èÀ¹Ñ¥µé½¹°(ÕÁÑ}Ðè¹ÜÑ ¤¹Ñ½%M=MÑÉ¥¹ ¤°(ô°ì½¹½¹±¥ÐèÕÍÉ}¥ô¤ì(ÍÑMÙ¥¹¡±Í¤ì(ô°mÍÍÍ¥½¸°Át¤ì((¼¼RR =9QaPMQI%9 %$I@@£ta!,() => `Business:${p.bizName}
-Trade:${p.trade}
-Location:${p.location}
-Years:${p.yearsOp}
-Employees:${p.employees}
-Revenue:$${p.annualRev}
-COGS:$${p.cogs}
-OpEx: $${p.opEx}
-NetIncome: $${p.netIncome}
-TopService:${p.topService}
-AvgJobValue: {p.avgJobValue}
-V¯nPoints:${p.painPoints}`;
-  
-  // ââ GENERATE CANVAS ââââââââââââââââââââââââââââââââââââââââââââââââ
-  const genCanvas = async () => {
-    setCLoading(true);
-    try {
-      const data = await callEdge('claude-proxy', {
-        system: `You are a business strategist for small trades businesses. Return ONLY valid JSON with keys: problem,solution,uvp,unfair,segments,metrics,channels,revenue,cost. Each value: 2-4 bullet points using the bullet character. Max 400 chars per value. No markdown.`,
-        user: `Build a lean canvas for this business:\n${ctx()}`
-      }, session);
-      const parsed = jp(data?.text || '{}');
-      if (!parsed) { setCLoading(false); return; }
-      setCanvas(parsed);
-      // Save all cells to Supabase
-      const rows = CELLS.map(c => ({
-        user_id:    session.user.id,
-        cell_key:   c.k,
-        content:     parsed[c.k] || '',
-        updated_at: new Date().toISOString(),
-      }));
-      await supabase.from('canvas_cells').upsert(rows, { onConflict: 'user_id,cell_key' });
-      // Score the canvas
-      genScores(parsed);
-      // Generate opportunities too
-      genOpportunities(parsed);
-    } catch(e) { console.error('Canvas error:', e); }
-    ScLoading(false);
-  };
+  // ── LOAD ALL USER DATA ON LOGIN ──────────────────────────────────────────
+  useEffect(() => {
+    if (!session) return;
+    loadProfile();
+    loadSubscription();
+    loadCanvas();
+    loadOpportunities();
+    loadGoals();
+    loadCSHistory();
+  }, [session]);
 
-  // ââ GENERATE CANVAS SCORES ââââââââââââââââââââââââââââââââââââââââââââââââ
-  const genScores = async (canvasData) => {
-    try {
-      const data = await callEdge('claude-proxy', {
-        system: `You are a lean canvas analyst. Score each canvas cell 0-100 based on: (1) how optimized the content is, (2) integration with other cells, (3) specificity and actionability. Return ONLY valid JSON: {"problem":{"score":75,"preview":"Cut labor costs"},...} ã one entry per cell key. The preview is 3-5 words describing the top opportunity linked to this cell.`,
-        user: `Score this lean canvas:\n${JSON.stringify(canvasData)}\n\Business context:\n${ctx()}`
-      }, session);
-      const parsed = jp(data?.text || '{}');
-      if (!parsed) return;
-      setCanvasScores(parsed);
-      // Persist scores
-      const rows = Object.entries(parsed).map(([k, v]) => ({
-        user_id:       session.user.id,
-        cell_key:      k,
-        score:         v.score,
-        score_preview: v.preview,
-        updated_at:    new Date().toISOScores);
+  async function loadProfile() {
+    const { data } = await supabase.from('businesses')
+      .select('*').eq('user_id', session.user.id).single();
+    if (data) {
+      setP({
+        bizName:     data.biz_name    || "",
+        trade:       data.trade       || "",
+        location:    data.location    || "",
+        yearsOp:     data.years_op    || "",
+        employees:   data.employees   || "",
+        annualRev:   data.annual_rev  || "",
+        cogs:        data.cogs        || "",
+        opEx:        data.op_ex       || "",
+        netIncome:   data.net_income  || "",
+        topService:  data.top_service || "",
+        avgJobValue: data.avg_job_val || "",
+        painPoints:  data.pain_points || "",
+        phoneNumber: data.phone_number|| "",
+        timezone:    data.timezone    || Intl.DateTimeFormat().resolvedOptions().timeZone,
+      });
+      setSubmitted(true);
+    }
+  }
+
+  async function loadSubscription() {
+    const { data } = await supabase.from('subscriptions')
+      .select('status').eq('user_id', session.user.id).single();
+    setIsPremium(data?.status === 'active');
+  }
+
+  async function loadCanvas() {
+    const { data } = await supabase.from('canvas_cells')
+      .select('*').eq('user_id', session.user.id);
+    if (data?.length) {
+      const cells = {}, scores = {};
+      data.forEach(row => {
+        cells[row.cell_key]  = row.content;
+        scores[row.cell_key] = { score: row.score, preview: row.score_preview };
+      });
+      setCanvas(cells);
+      setCanvasScores(scores);
     }
   }
 
@@ -377,7 +372,7 @@ V¯nPoints:${p.painPoints}`;
     if (data?.length) setCsMessages(data);
   }
 
-  // ââ AUTH ACTIONS âââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+  // ── AUTH ACTIONS ─────────────────────────────────────────────────────────
   const signInWithGoogle = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
@@ -398,7 +393,7 @@ V¯nPoints:${p.painPoints}`;
     setCsMessages([]); setTab("input"); setIsPremium(false);
   };
 
-  // ââ SAVE PROFILE âââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+  // ── SAVE PROFILE ─────────────────────────────────────────────────────────
   const saveProfile = useCallback(async () => {
     if (!session) return;
     setSaving(true);
@@ -423,7 +418,7 @@ V¯nPoints:${p.painPoints}`;
     setSaving(false);
   }, [session, p]);
 
-  // ââ CONTEXT STRING FOR AI âââââââââââââââââââââââââââââââââââââââââââââââââ
+  // ── CONTEXT STRING FOR AI ─────────────────────────────────────────────────
   const ctx = () => `Business:${p.bizName}
 Trade:${p.trade}
 Location:${p.location}
@@ -437,12 +432,173 @@ TopService:${p.topService}
 AvgJobValue:$${p.avgJobValue}
 PainPoints:${p.painPoints}`;
 
-  // ââ GENERATE CANVAS âââââââââââââââââââââââââââââââââââââââââââââââââââââââ(½¹ÍÐ¹¹ÙÌôÍå¹ ¤ôøì(ÍÑ1½¥¹¡ÑÉÕ¤ì(ÑÉäì(½¹ÍÐÑôÝ¥Ð±± ±ÕµÁÉ½áä°ì(ÍåÍÑ´èe½ÔÉÕÍ¥¹ÍÌÍÑÉÑ¥ÍÐ½ÈÍµ±°ÑÉÌÕÍ¥¹ÍÍÌ¸IÑÕÉ¸=91dÙ±¥)M=8Ý¥Ñ ­åÌèÁÉ½±´±Í½±ÕÑ¥½¸±ÕÙÀ±Õ¹¥È±Íµ¹ÑÌ±µÑÉ¥Ì±¡¹¹±Ì±ÉÙ¹Õ±½ÍÐ¸ Ù±ÕèÈ´ÐÕ±±ÐÁ½¥¹ÑÌÕÍ¥¹Ñ¡Õ±±Ð¡ÉÑÈ¸5àÐÀÀ¡ÉÌÁÈÙ±Õ¸9¼µÉ­½Ý¸¹°(ÕÍÈè	Õ¥±±¸¹ÙÌ½ÈÑ¡¥ÌÕÍ¥¹ÍÌéq¸íÑà ¥õ(ô°ÍÍÍ¥½¸¤ì(½¹ÍÐÁÉÍô©À¡Ñü¹ÑáÐñðíô¤ì(¥ ÁÉÍ¤ìÍÑ1½¥¹¡±Í¤ìÉÑÕÉ¸ìô(ÍÑ¹ÙÌ¡ÁÉÍ¤ì(¼¼MÙ±°±±ÌÑ¼MÕÁÍ(½¹ÍÐÉ½ÝÌô11L¹µÀ¡ôø¡ì(ÕÍÉ}¥èÍÍÍ¥½¸¹ÕÍÈ¹¥°(±±}­äè¹¬°(½¹Ñ¹ÐèÁÉÍm¹­tñð°(ÕÁÑ}Ðè¹ÜÑ ¤¹Ñ½%M=MÑÉ¥¹ ¤°(ô¤¤ì(Ý¥ÐÍÕÁÍ¹É½´ ¹ÙÍ}±±Ì¤¹ÕÁÍÉÐ¡É½ÝÌ°ì½¹½¹±¥ÐèÕÍÉ}¥±±±}­äô¤ì(¼¼M½ÉÑ¡¹ÙÌ(¹M½ÉÌ¡ÁÉÍ¤ì(¼¼¹ÉÑ½ÁÁ½ÉÑÕ¹¥Ñ¥ÌÑ½¼(¹=ÁÁ½ÉÑÕ¹¥Ñ¥Ì¡ÁÉÍ¤ì(ôÑ ¡¤ì½¹Í½±¹ÉÉ½È ¹ÙÌÉÉ½Èè°¤ìô(M1½¥¹¡±Í¤ì(ôì((¼¼RR 9IQ9YLM=ILRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR (½¹ÍÐ¹M½ÉÌôÍå¹¡¹ÙÍÑ¤ôøì(ÑÉäì(½¹ÍÐÑôÝ¥Ð±± ±ÕµÁÉ½áä°ì(ÍåÍÑ´èe½ÔÉ±¸¹ÙÌ¹±åÍÐ¸M½É ¹ÙÌ±°À´ÄÀÀÍ½¸è Ä¤¡½Ü½ÁÑ¥µ¥éÑ¡½¹Ñ¹Ð¥Ì° È¤¥¹ÑÉÑ¥½¸Ý¥Ñ ½Ñ¡È±±Ì° Ì¤ÍÁ¥¥¥Ñä¹Ñ¥½¹¥±¥Ñä¸IÑÕÉ¸=91dÙ±¥)M=8èìÁÉ½±´éìÍ½ÉèÜÔ°ÁÉÙ¥ÜèÕÐ±½È½ÍÑÌô°¸¸¹ôL½¹¹ÑÉäÁÈ±°­ä¸Q¡ÁÉÙ¥Ü¥ÌÌ´ÔÝ½ÉÌÍÉ¥¥¹Ñ¡Ñ½À½ÁÁ½ÉÑÕ¹¥Ñä±¥¹­Ñ¼Ñ¡¥Ì±°¹°(ÕÍÈèM½ÉÑ¡¥Ì±¸¹ÙÌéq¸í)M=8¹ÍÑÉ¥¹¥ä¡¹ÙÍÑ¥õq¹q	ÕÍ¥¹ÍÌ½¹ÑáÐéq¸íÑà ¥õ(ô°ÍÍÍ¥½¸¤ì(½¹ÍÐÁÉÍô©À¡Ñü¹ÑáÐñðíô¤ì(¥ ÁÉÍ¤ÉÑÕÉ¸ì(ÍÑ¹ÙÍM½ÉÌ¡ÁÉÍ¤ì(¼¼AÉÍ¥ÍÐÍ½ÉÌ(½¹ÍÐÉ½ÝÌô=©Ð¹¹ÑÉ¥Ì¡ÁÉÍ¤¹µÀ ¡m¬°Ùt¤ôø¡ì(ÕÍÉ}¥èÍÍÍ¥½¸¹ÕÍÈ¹¥°(±±}­äè¬°(Í½ÉèØ¹Í½É°(Í½É}ÁÉÙ¥ÜèØ¹ÁÉÙ¥Ü°(ÕÁÑ}Ðè¹ÜÑ ¤¹Ñ½%M=MÑÉ¥¹ ¤°(ô¤¤ì(Ý¥ÐÍÕÁÍ¹É½´ ¹ÙÍ}±±Ì¤¹ÕÁÍÉÐ¡É½ÝÌ°ì½¹½¹±¥ÐèÕÍÉ}¥±±±}­äô¤ì(ôÑ ¡¤ì½¹Í½±¹ÉÉ½È M½ÉÉÉ½Èè°¤pdate({ status: next, updated_at: new Date().toISOString() }).eq('id', stepId);
+  // ── GENERATE CANVAS ───────────────────────────────────────────────────────
+  const genCanvas = async () => {
+    setCLoading(true);
+    try {
+      const data = await callEdge('claude-proxy', {
+        system: `You are a business strategist for small trades businesses. Return ONLY valid JSON with keys: problem,solution,uvp,unfair,segments,metrics,channels,revenue,cost. Each value: 2-4 bullet points using the bullet character. Max 400 chars per value. No markdown.`,
+        user: `Build a lean canvas for this business:\n${ctx()}`
+      }, session);
+      const parsed = jp(data?.text || '{}');
+      if (!parsed) { setCLoading(false); return; }
+      setCanvas(parsed);
+      // Save all cells to Supabase
+      const rows = CELLS.map(c => ({
+        user_id:    session.user.id,
+        cell_key:   c.k,
+        content:    parsed[c.k] || '',
+        updated_at: new Date().toISOString(),
+      }));
+      await supabase.from('canvas_cells').upsert(rows, { onConflict: 'user_id,cell_key' });
+      // Score the canvas
+      genScores(parsed);
+      // Generate opportunities too
+      genOpportunities(parsed);
+    } catch(e) { console.error('Canvas error:', e); }
+    setCLoading(false);
+  };
+
+  // ── GENERATE CANVAS SCORES ────────────────────────────────────────────────
+  const genScores = async (canvasData) => {
+    try {
+      const data = await callEdge('claude-proxy', {
+        system: `You are a lean canvas analyst. Score each canvas cell 0-100 based on: (1) how optimized the content is, (2) integration with other cells, (3) specificity and actionability. Return ONLY valid JSON: {"problem":{"score":75,"preview2:"Cut labor costs"},...} — one entry per cell key. The preview is 3-5 words describing the top opportunity linked to this cell.`,
+        user: `Score this lean canvas:\n${JSON.stringify(canvasData)}\n\nBusiness context:\n${ctx()}`
+      }, session);
+      const parsed = jp(data?.text || '{}');
+      if (!parsed) return;
+      setCanvasScores(parsed);
+      // Persist scores
+      const rows = Object.entries(parsed).map(([k, v]) => ({
+        user_id:       session.user.id,
+        cell_key:      k,
+        score:         v.score,
+        score_preview: v.preview,
+        updated_at:    new Date().toISOString(),
+      }));
+      await supabase.from('canvas_cells').upsert(rows, { onConflict: 'user_id,cell_key' });
+    } catch(e) { console.error('Score error:', e); }
+  };
+
+  // ── GENERATE OPPORTUNITIES ────────────────────────────────────────────────
+  const genOpportunities = async (canvasData) => {
+    setOppLoading(true);
+    try {
+      const data = await callEdge('claude-proxy', {
+        system: `You are a revenue and efficiency consultant for small trades businesses. Analyze this lean canvas and generate opportunity cards. Return ONLY valid JSON array: [{"canvas_cell":"problem","title":"string","insight":"string (2-3 sentences, specific and actionable)","impact_label":"High"|"Medium"|"Low"}]. Generate at least 2 cards per relevant canvas cell. Be specific to the trade, numbers, and pain points. Focus on the 20% actions that drive 80% of results.`,
+        user: `Generate opportunities for this business:\n${ctx()}\n\nLean Canvas:\n${JSON.stringify(canvasData)}`
+      }, session);
+      const parsed = jp(data?.text || '[]');
+      if (!Array.isArray(parsed)) { setOppLoading(false); return; }
+      // Delete old non-migrated opportunities first
+      await supabase.from('opportunities')
+        .delete().eq('user_id', session.user.id).eq('migrated', false);
+      // Insert new ones
+      const rows = parsed.map((opp, i) => ({
+        user_id:      session.user.id,
+        canvas_cell:  opp.canvas_cell,
+        title:        opp.title,
+        insight:      opp.insight,
+        impact_label: opp.impact_label || 'Medium',
+        migrated:     false,
+        sort_order:   i,
+      }));
+      const { data: inserted } = await supabase.from('opportunities')
+        .insert(rows).select();
+      setOpps(inserted || []);
+    } catch(e) { console.error('Opp error:', e); }
+    setOppLoading(false);
+  };
+
+  // ── SUBMIT PROFILE ────────────────────────────────────────────────────────
+  const submit = async () => {
+    setSubmitted(true);
+    setTab("canvas");
+    await saveProfile();
+    await genCanvas();
+  };
+
+  // ── SAVE CANVAS CELL EDIT ─────────────────────────────────────────────────
+  const saveCanvasCell = useCallback(async (key, value) => {
+    setCanvas(prev => ({ ...prev, [key]: value }));
+    await supabase.from('canvas_cells').upsert({
+      user_id:    session.user.id,
+      cell_key:   key,
+      content:    value,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'user_id,cell_key' });
+  }, [session]);
+
+  // ── MIGRATE OPPORTUNITY → GOAL ────────────────────────────────────────────
+  const migrateToGoal = async (opp) => {
+    setMigratedMsg(prev => ({ ...prev, [opp.id]: true }));
+    // Mark migrated in DB
+    await supabase.from('opportunities')
+      .update({ migrated: true, migrated_at: new Date().toISOString() })
+      .eq('id', opp.id);
+    // Estimate dollar value with AI
+    let estValue = 0;
+    try {
+      const data = await callEdge('claude-proxy', {
+        system: `You are a financial analyst for small trades businesses. Estimate the annual dollar value of implementing this opportunity. Return ONLY valid JSON: {"estimated_annual_value": 5000, "reasoning": "one sentence"}`,
+        user: `Opportunity: ${opp.title}\nInsight: ${opp.insight}\n\nBusiness context:\n${ctx()}`
+      }, session);
+      const parsed = jp(data?.text || '{}');
+      estValue = parsed?.estimated_annual_value || 0;
+    } catch(e) { console.error('Value estimate error:', e); }
+    // Create goal
+    const { data: goal } = await supabase.from('goals').insert({
+      user_id:          session.user.id,
+      opportunity_id:   opp.id,
+      title:            opp.title,
+      estimated_value:  estValue,
+      status:           'not_started',
+      sms_enabled:      false,
+      sort_order:       goals.length,
+    }).select().single();
+    if (!goal) return;
+    // Generate steps with AI
+    try {
+      const data = await callEdge('claude-proxy', {
+        system: `You are an execution coach for small business owners. Generate 3-6 specific, actionable steps to achieve this goal. Return ONLY valid JSON array: [{"step_text":"string","time_estimate":"string (e.g. 2 hours, 1 day, 1 week)"}]`,
+        user: `Goal: ${opp.title}\nContext: ${opp.insight}\n\nBusiness:\n${ctx()}`
+      }, session);
+      const steps = jp(data?.text || '[]');
+      if (Array.isArray(steps)) {
+        const rows = steps.map((s, i) => ({
+          goal_id:       goal.id,
+          user_id:       session.user.id,
+          step_text:     s.step_text,
+          time_estimate: s.time_estimate,
+          status:        'not_started',
+          sort_order:    i,
+        }));
+        const { data: insertedSteps } = await supabase.from('goal_steps')
+          .insert(rows).select();
+        setGoalSteps(prev => ({ ...prev, [goal.id]: insertedSteps || [] }));
+      }
+    } catch(e) { console.error('Steps error:', e); }
+    setGoals(prev => [...prev, goal]);
+    // Remove from local opps after delay
+    setTimeout(() => {
+      setOpps(prev => prev.filter(o => o.id !== opp.id));
+      setMigratedMsg(prev => { const n = {...prev}; delete n[opp.id]; return n; });
+    }, 2000);
+  };
+
+  // ── UPDATE GOAL STEP STATUS ───────────────────────────────────────────────
+  const cycleStepStatus = async (goalId, stepId, currentStatus) => {
+    const next = currentStatus === 'not_started' ? 'in_progress'
+               : currentStatus === 'in_progress' ? 'done'
+               : 'not_started';
+    await supabase.from('goal_steps')
+      .update({ status: next, updated_at: new Date().toISOString() }).eq('id', stepId);
     setGoalSteps(prev => ({
       ...prev,
       [goalId]: (prev[goalId]||[]).map(s => s.id === stepId ? {...s, status: next} : s)
     }));
-    // If all steps done â auto-complete the goal
+    // If all steps done → auto-complete the goal
     const updatedSteps = (goalSteps[goalId]||[]).map(s => s.id === stepId ? {...s, status: next} : s);
     if (updatedSteps.length > 0 && updatedSteps.every(s => s.status === 'done')) {
       await completeGoal(goalId);
@@ -467,14 +623,14 @@ PainPoints:${p.painPoints}`;
     setGoals(prev => prev.map(g => g.id === goalId ? {...g, status:'completed', completed_at: new Date().toISOString()} : g));
   };
 
-  // ââ UPDATE GOAL FIELD âââââââââââââââââââââââââââââââââââââââââââââââââââââ
+  // ── UPDATE GOAL FIELD ─────────────────────────────────────────────────────
   const updateGoalField = async (goalId, field, value) => {
     setGoals(prev => prev.map(g => g.id === goalId ? {...g, [field]: value} : g));
     await supabase.from('goals')
       .update({ [field]: value, updated_at: new Date().toISOString() }).eq('id', goalId);
   };
 
-  // ââ UPDATE STEP TEXT âââââââââââââââââââââââââââââââââââââââââââââââââââ
+  // ── UPDATE STEP TEXT ──────────────────────────────────────────────────────
   const updateStepText = async (goalId, stepId, value) => {
     setGoalSteps(prev => ({
       ...prev,
@@ -484,7 +640,7 @@ PainPoints:${p.painPoints}`;
       .update({ step_text: value, updated_at: new Date().toISOString() }).eq('id', stepId);
   };
 
-  // ââ TOGGLE SMS FOR GOAL âââââââââââââââââââââââââââââââââââââââââââââââââââ
+  // ── TOGGLE SMS FOR GOAL ───────────────────────────────────────────────────
   const toggleGoalSMS = async (goalId, current) => {
     if (!p.phoneNumber) {
       alert("Add your phone number in the Input tab first to enable SMS reminders.");
@@ -493,7 +649,7 @@ PainPoints:${p.painPoints}`;
     await updateGoalField(goalId, 'sms_enabled', !current);
   };
 
-  // ââ CUSTOMER SERVICE ââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+  // ── CUSTOMER SERVICE ──────────────────────────────────────────────────────
   useEffect(() => {
     csEndRef.current?.scrollIntoView({ behavior:'smooth' });
   }, [csMessages]);
@@ -508,7 +664,7 @@ PainPoints:${p.painPoints}`;
     try {
       const history = [...csMessages, userMsg].map(m => ({ role: m.role, content: m.content }));
       const data = await callEdge('claude-proxy', {
-        system: `You are the TradeStack customer service assistant. You ONLY answer questions about how to use TradeStack â the business intelligence app. If asked anything else, say: "I'm not sure about that, but I'm here to help you get the most out of TradeStack. What can I help you with?"
+        system: `You are the TradeStack customer service assistant. You ONLY answer questions about how to use TradeStack — the business intelligence app. If asked anything else, say: "I'm not sure about that, but I'm here to help you get the most out of TradeStack. What can I help you with?"
 
 TradeStack has 4 tabs:
 - Input: Enter your business info and financials. Hit "Save & Analyze" to generate your canvas and opportunities.
@@ -530,7 +686,7 @@ Keep replies short, friendly, and helpful. No emojis.`,
     setCsLoading(false);
   };
 
-  // ââ SCORE BADGE HELPERS âââââââââââââââââââââââââââââââââââââââââââââââââââ
+  // ── SCORE BADGE HELPERS ───────────────────────────────────────────────────
   const scoreClass = (score) => {
     if (score == null) return 'score-none';
     if (score >= 70) return 'score-hi';
@@ -550,20 +706,20 @@ Keep replies short, friendly, and helpful. No emojis.`,
     }
   };
 
-  // ââ GROUPED OPPORTUNITIES âââââââââââââââââââââââââââââââââââââââââââââââââ
+  // ── GROUPED OPPORTUNITIES ─────────────────────────────────────────────────
   const groupedOpps = CELLS.reduce((acc, c) => {
-    const cards = opps.filter(o => ter(o => o.canvas_cell === c.k);
+    const cards = opps.filter(o => o.canvas_cell === c.k);
     if (cards.length) acc[c.k] = { label: c.l, cards };
     return acc;
   }, {});
 
-  // ââ RENDER ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+  // ── RENDER ────────────────────────────────────────────────────────────────
   if (authLoading) return (
     <>
       <style>{CSS}</style>
       <div className="app">
         <div className="hdr"><div className="logo">Trade<span>Stack</span></div></div>
-        <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',minHeight:'80vh',gap:'.65rem'}}>
+        <div style={{display:'flex',flexDirection:'column',alignItems:'tenter',justifyContent:'center',minHeight:'80vh',gap:'.65rem'}}>
           <div className="lbar"/><div className="llbl" style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:'.68rem',fontWeight:700,letterSpacing:'.18em',textTransform:'uppercase',color:'#555'}}>Loading</div>
         </div>
       </div>
@@ -612,7 +768,7 @@ Keep replies short, friendly, and helpful. No emojis.`,
 
         <div className="pg">
 
-          {/* ââ INPUT TAB ââââââââââââââââââââââââââââââââââââââââââââââââ */}
+          {/* ── INPUT TAB ──────────────────────────────────────────────── */}
           {tab==="input" && <>
             <div className="stitle">Your Business</div>
             <div className="g2">
@@ -629,7 +785,7 @@ Keep replies short, friendly, and helpful. No emojis.`,
                 <input value={p.location} onChange={e=>setP(v=>({...v,location:e.target.value}))} placeholder="e.g. Austin, TX"/>
               </div>
               <div className="fg">
-                <label>Years Operating</label>
+                <label>Years Operating</label>
                 <input type="number" inputMode="numeric" value={p.yearsOp} onChange={e=>setP(v=>({...v,yearsOp:e.target.value}))} placeholder="7"/>
               </div>
               <div className="fg">
@@ -637,7 +793,7 @@ Keep replies short, friendly, and helpful. No emojis.`,
                 <input type="number" inputMode="numeric" value={p.employees} onChange={e=>setP(v=>({...v,employees:e.target.value}))} placeholder="4"/>
               </div>
               <div className="fg">
-                <label>GøService</label>
+                <label>Top Service</label>
                 <input value={p.topService} onChange={e=>setP(v=>({...v,topService:e.target.value}))} placeholder="e.g. Drain cleaning"/>
               </div>
               <div className="fg">
@@ -681,7 +837,7 @@ Keep replies short, friendly, and helpful. No emojis.`,
                   <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:'.65rem',fontWeight:700,letterSpacing:'.16em',textTransform:'uppercase',color:'#f5a623',marginBottom:'.2rem'}}>Upgrade to Premium</div>
                   <div style={{fontSize:'.8rem',color:'#666'}}>Unlock Opportunities, Goals, and SMS reminders. $9.98/month.</div>
                 </div>
-                <button className="btn bp" style={{width:'auto',whiteSpace:'nowrap'}} onClick={handleUpgrade} disabled={checkoutLoading}>{checkoutLoading ? 'Redirecting...' : 'Upgrade â $9.98/mo'}</button>
+                <button className="btn bp" style={{width:'auto',whiteSpace:'nowrap'}} onClick={handleUpgrade} disabled={checkoutLoading}>{checkoutLoading ? 'Redirecting...' : 'Upgrade — $9.98/mo'}</button>
               </div>
             )}
 
@@ -701,9 +857,9 @@ Keep replies short, friendly, and helpful. No emojis.`,
             </div>
           </>}
 
-          {/* ââ CANVAS TAB âââââââââââââââââââââââââââââââââââââââââââââââ */}
+          {/* ── CANVAS TAB ─────────────────────────────────────────────── */}
           {tab==="canvas" && <>
-            <div className="stitle">Lean Canvas â {p.bizName}</div>
+            <div className="stitle">Lean Canvas — {p.bizName}</div>
             {cLoading
               ? <div className="loader"><div className="lbar"/><div className="llbl">Building your canvas...</div></div>
               : <>
@@ -729,7 +885,7 @@ Keep replies short, friendly, and helpful. No emojis.`,
                             value={canvas[c.k] || ''}
                             maxLength={400}
                             onChange={e => saveCanvasCell(c.k, e.target.value)}
-                            placeholder="â"
+                            placeholder="—"
                           />
                         </div>
                       );
@@ -751,14 +907,14 @@ Keep replies short, friendly, and helpful. No emojis.`,
             )}
           </>}
 
-          {/* ââ OPPORTUNITIES TAB ââââââââââââââââââââââââââââââââââââââââ */}
+          {/* ── OPPORTUNITIES TAB ──────────────────────────────────────── */}
           {tab==="opportunities" && <>
             {!isPremium
               ? <div className="premium-gate">
                   <div className="pg-eyebrow">Premium Feature</div>
                   <div className="pg-title">See What Matters</div>
                   <div className="pg-sub">Your canvas has been scored. Upgrade to see the specific opportunities where 20% of your effort will drive 80% of your results.</div>
-                  <button className="btn bp" style={{width:'auto'}} onClick={handleUpgrade} disabled={checkoutLoading}>{checkoutLoading ? 'Redirecting...' : 'Upgrade â $9.98/mo'}</button>
+                  <button className="btn bp" style={{width:'auto'}} onClick={handleUpgrade} disabled={checkoutLoading}>{checkoutLoading ? 'Redirecting...' : 'Upgrade — $9.98/mo'}</button>
                   <div className="pg-price">Cancel anytime. Instant access.</div>
                 </div>
               : oppLoading
@@ -775,7 +931,7 @@ Keep replies short, friendly, and helpful. No emojis.`,
                           {group.cards.map(opp => (
                             <div key={opp.id} className="opp-card">
                               {migratedMsg[opp.id]
-                                ? <div className="opp-migrated">This became a goal â check the Goals tab</div>
+                                ? <div className="opp-migrated">This became a goal — check the Goals tab</div>
                                 : <>
                                     <div className="opp-card-top">
                                       <div className="opp-title">{opp.title}</div>
@@ -790,17 +946,17 @@ Keep replies short, friendly, and helpful. No emojis.`,
                         </div>
                       ))}
                     </>
-                }
-              </>}
+            }
+          </>}
 
-           {{/* ââ GOALS TAB ââââââââââââââââââââââââââââââââââââââââââââââââ */}
+          {/* ── GOALS TAB ──────────────────────────────────────────────── */}
           {tab==="goals" && <>
             {!isPremium
               ? <div className="premium-gate">
                   <div className="pg-eyebrow">Premium Feature</div>
                   <div className="pg-title">Turn Insight Into Action</div>
                   <div className="pg-sub">Move opportunities into goals with AI-generated action steps, dollar value estimates, and optional daily SMS reminders at 8pm.</div>
-                  <button className="btn bp" style={{width:'auto')}} onClick={handleUpgrade} disabled={checkoutLoading}>{checkoutLoading ? 'Redirecting...' : 'Upgrade â $9.98/mo'}</button>
+                  <button className="btn bp" style={{width:'auto'}} onClick={handleUpgrade} disabled={checkoutLoading}>{checkoutLoading ? 'Redirecting...' : 'Upgrade — $9.98/mo'}</button>
                   <div className="pg-price">Cancel anytime. Instant access.</div>
                 </div>
               : <>
@@ -808,7 +964,7 @@ Keep replies short, friendly, and helpful. No emojis.`,
                   <div className="money-unlocked">
                     <span className="mu-label">Money Unlocked</span>
                     <span className="mu-value">${moneyUnlocked.toLocaleString()}</span>
-                  </diw>
+                  </div>
 
                   {goals.length === 0
                     ? <div className="empty">
@@ -816,7 +972,7 @@ Keep replies short, friendly, and helpful. No emojis.`,
                         <p style={{marginTop:'.5rem'}}>Go to the Opportunities tab and click "Make it a Goal" on any card.</p>
                       </div>
                     : <>
-                        {{/* Active goals first */}
+                        {/* Active goals first */}
                         {[...goals]
                           .sort((a,b) => {
                             if (a.status==='completed' && b.status!=='completed') return 1;
@@ -901,7 +1057,7 @@ Keep replies short, friendly, and helpful. No emojis.`,
 
         </div>{/* end .pg */}
 
-        {/* ââ CUSTOMER SERVICE BUBBLE ââââââââââââââââââââââââââââââââââââ */}
+        {/* ── CUSTOMER SERVICE BUBBLE ──────────────────────────────────── */}
         <div className="cs-bubble">
           {csOpen && (
             <div className="cs-panel">
@@ -938,4 +1094,6 @@ Keep replies short, friendly, and helpful. No emojis.`,
         </div>
 
       </div>
-   
+    </>
+  );
+}
