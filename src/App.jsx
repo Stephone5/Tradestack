@@ -36,12 +36,11 @@ body{background:#0e0e0e;}
 .app{min-height:100vh;background:#0e0e0e;color:#e8e0d4;font-family:'Barlow',sans-serif;font-weight:300;}
 
 /* HEADER */
-.hdr{background:#141414;border-bottom:2px solid #f5a623;padding:0 1rem;display:flex;align-items:center;justify-content:space-between;height:52px;position:sticky;top:0;z-index:100;position:relative;}
+.hdr{background:#141414;border-bottom:2px solid #f5a623;padding:0 1rem;display:flex;align-items:center;justify-content:space-between;height:52px;position:sticky;top:0;z-index:100;}
 .logo{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:1.3rem;letter-spacing:.08em;text-transform:uppercase;color:#f5a623;}
 .logo span{color:#e8e0d4;}
 .biz-tag{font-family:'Barlow Condensed',sans-serif;font-size:.7rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:#666;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .hdr-right{display:flex;align-items:center;gap:.5rem;}
-.hdr-tagline{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:#e8e0d4;position:absolute;left:50%;transform:translateX(-50%);white-space:nowrap;}
 .premium-badge{font-family:'Barlow Condensed',sans-serif;font-size:.6rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;background:#f5a623;color:#0e0e0e;padding:.18rem .5rem;border-radius:2px;}
 
 /* TABS */
@@ -129,7 +128,7 @@ textarea{resize:vertical;min-height:80px;}
 .opp-card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:.5rem;margin-bottom:.5rem;}
 .opp-title{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:.95rem;color:#e8e0d4;line-height:1.2;}
 .opp-impact{font-family:'Barlow Condensed',sans-serif;font-size:.58rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:.15rem .4rem;border-radius:2px;flex-shrink:0;}
-.imp-H{background:#1a3a2a;color:#4caf82;}.imp-M{background:#3a2f1a;color:#f5a623;}.imp-L{background:#222;color:#666;}
+.imp-H{background:#1a3a2a;color:#4caf82;}.imp-M{background:#3a2f1a;color:#f5a623;}.imp-M{background:#222;color:#666;}
 .opp-insight{font-size:.82rem;line-height:1.55;color:#999;margin-bottom:.75rem;}
 .opp-cta{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;background:transparent;border:1px solid #f5a623;color:#f5a623;padding:.5rem 1rem;border-radius:3px;cursor:pointer;transition:all .15s;}
 .opp-cta:hover{background:#f5a623;color:#0e0e0e;}
@@ -209,7 +208,7 @@ textarea{resize:vertical;min-height:80px;}
 .err{font-size:.78rem;color:#e05252;margin-top:.3rem;}
 `;
 
-// ── MAIN APP ────────────────────────────────────────────────────────────────
+// ── MAIN APP ───────────────────────────────────────────────────────────────
 export default function App() {
 
   // ── AUTH ────────────────────────────────────────────────────────────────
@@ -221,16 +220,13 @@ export default function App() {
 
   // ── NAV ─────────────────────────────────────────────────────────────────
   const [tab,          setTab]          = useState("input");
-  // After loading profile, if user already submitted, default to canvas
-  const initialTabSet = useRef(false);
 
   // ── BUSINESS PROFILE ────────────────────────────────────────────────────
   const [p, setP] = useState({
     bizName:"", trade:"", location:"", yearsOp:"", employees:"",
     annualRev:"", cogs:"", opEx:"", netIncome:"",
     topService:"", avgJobValue:"", painPoints:"",
-    phoneNumber:"", timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "America/New_York",
-    problem:"", solution:"", uvp:"", unfair:"", segments:"", metrics:"", channels:"", revenue:"", cost:""
+    phoneNumber:"", timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "America/New_York"
   });
   const [submitted,    setSubmitted]    = useState(false);
   const [saving,       setSaving]       = useState(false);
@@ -263,14 +259,21 @@ export default function App() {
   const [pendingUpgrade,  setPendingUpgrade]  = useState(false);
 
   const handleUpgrade = async () => {
+    if (isPremium) { setCheckoutError('You already have an active Premium subscription.'); return; }
     setCheckoutLoading(true);
     setCheckoutError(null);
-    sessionStorage.setItem('ts_pre_checkout_tab', tab);
     try {
+      sessionStorage.setItem('ts_pre_checkout_tab', tab);
       const data = await callEdge('create-checkout', {}, session);
       if (data?.url) {
         window.location.href = data.url;
-        return; // don't reset loading — user is being redirected
+        return;
+      }
+      if (data?.error === 'Already subscribed') {
+        setIsPremium(true);
+        setCheckoutError('You already have an active subscription! Refreshing...');
+        setCheckoutLoading(false);
+        return;
       }
       setCheckoutError(data?.error || 'Could not start checkout. Please try again.');
     } catch(e) {
@@ -280,13 +283,53 @@ export default function App() {
     setCheckoutLoading(false);
   };
 
-  // ── AUTO-TRIGGER CHECKOUT AFTER LOGIN (from landing page premium CTA) ───
+  // ── CHECKOUT RETURN: poll for subscription activation ──────────────────
   useEffect(() => {
-    if (session && pendingUpgrade) {
-      setPendingUpgrade(false);
-      handleUpgrade();
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('checkout') !== 'success') return;
+    window.history.replaceState(null, '', window.location.pathname);
+    const savedTab = sessionStorage.getItem('ts_pre_checkout_tab');
+    if (savedTab) { setTab(savedTab); sessionStorage.removeItem('ts_pre_checkout_tab'); }
+    if (!session) return;
+    loadSubscription();
+    let attempts = 0;
+    const poll = setInterval(async () => {
+      attempts++;
+      const { data } = await supabase.from('subscriptions')
+        .select('status').eq('user_id', session.user.id).maybeSingle();
+      if (data?.status === 'active') {
+        setIsPremium(true);
+        clearInterval(poll);
+      }
+      if (attempts >= 15) clearInterval(poll);
+    }, 2000);
+    return () => clearInterval(poll);
+  }, [session]);
+
+  // ── AUTO-SWITCH returning users to canvas tab ─────────────────────────
+  useEffect(() => {
+    if (session && submitted && tab === 'input') {
+      const params = new URLSearchParams(window.location.search);
+      if (!params.get('checkout')) setTab('canvas');
     }
-  }, [session, pendingUpgrade]);
+  }, [session, submitted]);
+
+  // ── MANAGE BILLING (Stripe portal) ────────────────────────────────────
+  const [billingLoading, setBillingLoading] = useState(false);
+  const handleManageBilling = async () => {
+    setBillingLoading(true);
+    try {
+      const data = await callEdge('manage-billing', {}, session);
+      if (data?.url) {
+        window.location.href = data.url;
+        return;
+      }
+    } catch(e) {
+      console.error('Billing portal error:', e);
+      alert('Could not open billing portal. Please try again.');
+    }
+    setBillingLoading(false);
+  };
 
   // ── COMPUTED ─────────────────────────────────────────────────────────────
   const moneyUnlocked = goals
@@ -319,39 +362,12 @@ export default function App() {
     return () => { subscription.unsubscribe(); clearTimeout(t); };
   }, []);
 
-  // ── AUTO-SWITCH RETURNING USERS TO CANVAS ──────────────────────────────
-  useEffect(() => {
-    if (session && submitted && !initialTabSet.current) {
-      initialTabSet.current = true;
-      const params = new URLSearchParams(window.location.search);
-      if (!params.get('checkout')) {
-        setTab('canvas');
-      }
-    }
-  }, [session, submitted]);
-
-  // ── HANDLE CHECKOUT RETURN ─────────────────────────────────────────────
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('checkout') === 'success') {
-      window.history.replaceState(null, '', window.location.pathname);
-      // Restore tab to opportunities (where they likely hit upgrade)
-      const savedTab = sessionStorage.getItem('ts_pre_checkout_tab');
-      if (savedTab) {
-        setTab(savedTab);
-        sessionStorage.removeItem('ts_pre_checkout_tab');
-      } else {
-        setTab('opportunities');
-      }
-    }
-  }, []);
-
   // ── LOAD ALL USER DATA ON LOGIN ──────────────────────────────────────────
   useEffect(() => {
     if (!session) return;
     (async () => {
       await loadProfile();
-      loadSubscription();
+      await loadSubscription();
       await loadCanvas();
       loadOpportunities();
       loadGoals();
@@ -379,15 +395,6 @@ export default function App() {
         painPoints:  data.pain_points || "",
         phoneNumber: data.phone_number|| "",
         timezone:    data.timezone    || Intl.DateTimeFormat().resolvedOptions().timeZone,
-        problem:     data.canvas_problem   || "",
-        solution:    data.canvas_solution  || "",
-        uvp:         data.canvas_uvp       || "",
-        unfair:      data.canvas_unfair    || "",
-        segments:    data.canvas_segments  || "",
-        metrics:     data.canvas_metrics   || "",
-        channels:    data.canvas_channels  || "",
-        revenue:     data.canvas_revenue   || "",
-        cost:        data.canvas_cost      || "",
       });
       setSubmitted(true);
     }
@@ -450,25 +457,13 @@ export default function App() {
     if (error) console.error('Login error:', error.message);
   };
 
-  const signInAndUpgrade = async () => {
-    if (session) {
-      // Already signed in — go straight to checkout
-      handleUpgrade();
-    } else {
-      // Set flag so checkout triggers after OAuth callback
-      setPendingUpgrade(true);
-      signInWithGoogle();
-    }
-  };
-
   const signOut = async () => {
     await supabase.auth.signOut();
     setSession(null);
     setP({ bizName:"",trade:"",location:"",yearsOp:"",employees:"",
            annualRev:"",cogs:"",opEx:"",netIncome:"",topService:"",
            avgJobValue:"",painPoints:"",phoneNumber:"",
-           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-           problem:"",solution:"",uvp:"",unfair:"",segments:"",metrics:"",channels:"",revenue:"",cost:"" });
+           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone });
     setSubmitted(false); setCanvas({}); setCanvasScores({});
     setOpps([]); setGoals([]); setGoalSteps({});
     setCsMessages([]); setTab("input"); setIsPremium(false);
@@ -478,7 +473,7 @@ export default function App() {
   const saveProfile = useCallback(async () => {
     if (!session) return;
     setSaving(true);
-    const { error } = await supabase.from('businesses').upsert({
+    await supabase.from('businesses').upsert({
       user_id:      session.user.id,
       biz_name:     p.bizName,
       trade:        p.trade,
@@ -494,27 +489,10 @@ export default function App() {
       pain_points:  p.painPoints,
       phone_number: p.phoneNumber,
       timezone:     p.timezone,
-      canvas_problem:   p.problem,
-      canvas_solution:  p.solution,
-      canvas_uvp:       p.uvp,
-      canvas_unfair:    p.unfair,
-      canvas_segments:  p.segments,
-      canvas_metrics:   p.metrics,
-      canvas_channels:  p.channels,
-      canvas_revenue:   p.revenue,
-      canvas_cost:      p.cost,
       updated_at:   new Date().toISOString(),
     }, { onConflict: 'user_id' });
-    if (error) console.error('saveProfile error:', error);
     setSaving(false);
   }, [session, p]);
-
-  // ── AUTO-SAVE PROFILE (debounced) ────────────────────────────────────────
-  useEffect(() => {
-    if (!session || !submitted) return;
-    const t = setTimeout(() => { saveProfile(); }, 2500);
-    return () => clearTimeout(t);
-  }, [session, submitted, saveProfile]);
 
   // ── CONTEXT STRING FOR AI ─────────────────────────────────────────────────
   const ctx = () => `Business:${p.bizName}
@@ -530,26 +508,30 @@ TopService:${p.topService}
 AvgJobValue:$${p.avgJobValue}
 PainPoints:${p.painPoints}`;
 
-  // ── SYNC CANVAS FROM USER INPUT ──────────────────────────────────────────
-  const syncCanvas = async () => {
+  // ── GENERATE CANVAS ───────────────────────────────────────────────────────
+  const genCanvas = async () => {
     setCLoading(true);
     try {
-      const canvasData = {};
-      CELLS.forEach(c => { canvasData[c.k] = p[c.k] || ''; });
-      setCanvas(canvasData);
+      const data = await callEdge('claude-proxy', {
+        system: `You are a business strategist for small trades businesses. Return ONLY valid JSON with keys: problem,solution,uvp,unfair,segments,metrics,channels,revenue,cost. Each value: 2-4 bullet points using the bullet character. Max 400 chars per value. No markdown.`,
+        user: `Build a lean canvas for this business:\n${ctx()}`
+      }, session);
+      const parsed = jp(data?.text || '{}');
+      if (!parsed) { setCLoading(false); return; }
+      setCanvas(parsed);
       // Save all cells to Supabase
       const rows = CELLS.map(c => ({
         user_id:    session.user.id,
         cell_key:   c.k,
-        content:    canvasData[c.k] || '',
+        content:    parsed[c.k] || '',
         updated_at: new Date().toISOString(),
       }));
       await supabase.from('canvas_cells').upsert(rows, { onConflict: 'user_id,cell_key' });
-      // Score the canvas with AI
-      genScores(canvasData);
-      // Generate opportunities from canvas + pain points
-      genOpportunities(canvasData);
-    } catch(e) { console.error('Canvas sync error:', e); }
+      // Score the canvas
+      genScores(parsed);
+      // Generate opportunities too
+      genOpportunities(parsed);
+    } catch(e) { console.error('Canvas error:', e); }
     setCLoading(false);
   };
 
@@ -557,7 +539,7 @@ PainPoints:${p.painPoints}`;
   const genScores = async (canvasData) => {
     try {
       const data = await callEdge('claude-proxy', {
-        system: `You are a lean canvas analyst. Score each canvas cell 0-100 based on: (1) how optimized the content is, (2) integration with other cells, (3) specificity and actionability. Return ONLY valid JSON: {"problem":{"score":75,"preview2:"Cut labor costs"},...} — one entry per cell key. The preview is 3-5 words describing the top opportunity linked to this cell.`,
+        system: `You are a lean canvas analyst. Score each canvas cell 0-100 based on: (1) how optimized the content is, (2) integration with other cells, (3) specificity and actionability. Return ONLY valid JSON: {"problem":{"score":75,"preview":"Cut labor costs"},...} — one entry per cell key. The preview is 3-5 words describing the top opportunity linked to this cell.`,
         user: `Score this lean canvas:\n${JSON.stringify(canvasData)}\n\nBusiness context:\n${ctx()}`
       }, session);
       const parsed = jp(data?.text || '{}');
@@ -581,7 +563,7 @@ PainPoints:${p.painPoints}`;
     try {
       const data = await callEdge('claude-proxy', {
         system: `You are a revenue and efficiency consultant for small trades businesses. Analyze this lean canvas and generate opportunity cards. Return ONLY valid JSON array: [{"canvas_cell":"problem","title":"string","insight":"string (2-3 sentences, specific and actionable)","impact_label":"High"|"Medium"|"Low"}]. Generate at least 2 cards per relevant canvas cell. Be specific to the trade, numbers, and pain points. Focus on the 20% actions that drive 80% of results.`,
-        user: `Generate opportunities for this business:\n${ctx()}\n\nLean Canvas:\n${JSON.stringify(canvasData)}\n\nBiggest Pain Points:\n${p.painPoints || 'None specified'}`
+        user: `Generate opportunities for this business:\n${ctx()}\n\nLean Canvas:\n${JSON.stringify(canvasData)}`
       }, session);
       const parsed = jp(data?.text || '[]');
       if (!Array.isArray(parsed)) { setOppLoading(false); return; }
@@ -610,7 +592,7 @@ PainPoints:${p.painPoints}`;
     setSubmitted(true);
     setTab("canvas");
     await saveProfile();
-    await syncCanvas();
+    await genCanvas();
   };
 
   // ── SAVE CANVAS CELL EDIT ─────────────────────────────────────────────────
@@ -813,14 +795,14 @@ Keep replies short, friendly, and helpful. No emojis.`,
       <style>{CSS}</style>
       <div className="app">
         <div className="hdr"><div className="logo">Trade<span>Stack</span></div></div>
-        <div style={{display:'flex',flexDirection:'column',alignItems:'tenter',justifyContent:'center',minHeight:'80vh',gap:'.65rem'}}>
+        <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',minHeight:'80vh',gap:'.65rem'}}>
           <div className="lbar"/><div className="llbl" style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:'.68rem',fontWeight:700,letterSpacing:'.18em',textTransform:'uppercase',color:'#555'}}>Loading</div>
         </div>
       </div>
     </>
   );
 
-  if (!session) return <LandingPage onSignIn={signInWithGoogle} onUpgrade={signInAndUpgrade} />;
+  if (!session) return <LandingPage onSignIn={signInWithGoogle} />;
 
   const TABS = [
     { id:"input",         l:"Input" },
@@ -837,9 +819,9 @@ Keep replies short, friendly, and helpful. No emojis.`,
         {/* HEADER */}
         <div className="hdr">
           <div className="logo">Trade<span>Stack</span></div>
-          <div className="hdr-tagline">OBT<span style={{color:'#f5a623',fontWeight:800}}>AI</span>N WHAT OTHERS OVERLOOK.</div>
           <div className="hdr-right">
             {isPremium && <span className="premium-badge">Premium</span>}
+            {submitted && <div className="biz-tag">{p.bizName}</div>}
             <button className="btn bg" style={{padding:'.4rem .85rem',fontSize:'.65rem'}} onClick={signOut}>Sign Out</button>
           </div>
         </div>
@@ -864,9 +846,7 @@ Keep replies short, friendly, and helpful. No emojis.`,
 
           {/* ── INPUT TAB ──────────────────────────────────────────────── */}
           {tab==="input" && <>
-
-            {/* ─── GENERAL INFORMATION ─── */}
-            <div className="stitle">General Information</div>
+            <div className="stitle">Your Business</div>
             <div className="g2">
               <div className="fg">
                 <label>Business Name</label>
@@ -902,52 +882,8 @@ Keep replies short, friendly, and helpful. No emojis.`,
               </div>
             </div>
 
-            {/* ─── BUSINESS MODEL ─── */}
             <div className="divider"/>
-            <div className="stitle">Business Model</div>
-            <p style={{fontSize:'.82rem',color:'#666',marginBottom:'1rem',lineHeight:1.55}}>Describe your business strategy in your own words. This becomes your Lean Canvas and is scored by AI to surface opportunities.</p>
-            <div className="g2">
-              <div className="fg">
-                <label>Problem</label>
-                <textarea value={p.problem} onChange={e=>setP(v=>({...v,problem:e.target.value}))} placeholder="What problem does your business solve? What pain do your customers have?"/>
-              </div>
-              <div className="fg">
-                <label>Solution</label>
-                <textarea value={p.solution} onChange={e=>setP(v=>({...v,solution:e.target.value}))} placeholder="How does your business solve that problem? What do you deliver?"/>
-              </div>
-              <div className="fg">
-                <label>Unique Value Proposition</label>
-                <textarea value={p.uvp} onChange={e=>setP(v=>({...v,uvp:e.target.value}))} placeholder="Why should customers choose you over the competition?"/>
-              </div>
-              <div className="fg">
-                <label>Unfair Advantage</label>
-                <textarea value={p.unfair} onChange={e=>setP(v=>({...v,unfair:e.target.value}))} placeholder="What do you have that competitors can't easily copy? (reputation, patents, relationships...)"/>
-              </div>
-              <div className="fg">
-                <label>Customer Segments</label>
-                <textarea value={p.segments} onChange={e=>setP(v=>({...v,segments:e.target.value}))} placeholder="Who are your ideal customers? Be specific. (e.g. homeowners 35-55 in suburban Austin)"/>
-              </div>
-              <div className="fg">
-                <label>Key Metrics</label>
-                <textarea value={p.metrics} onChange={e=>setP(v=>({...v,metrics:e.target.value}))} placeholder="What numbers do you track? (jobs/month, close rate, repeat customers, avg ticket...)"/>
-              </div>
-              <div className="fg">
-                <label>Channels</label>
-                <textarea value={p.channels} onChange={e=>setP(v=>({...v,channels:e.target.value}))} placeholder="How do customers find you? (referrals, Google, yard signs, Home Advisor...)"/>
-              </div>
-              <div className="fg">
-                <label>Revenue Streams</label>
-                <textarea value={p.revenue} onChange={e=>setP(v=>({...v,revenue:e.target.value}))} placeholder="How do you make money? (service calls, contracts, installs, maintenance plans...)"/>
-              </div>
-              <div className="fg full">
-                <label>Cost Structure</label>
-                <textarea value={p.cost} onChange={e=>setP(v=>({...v,cost:e.target.value}))} placeholder="What are your biggest costs? (labor, materials, trucks, insurance, marketing...)"/>
-              </div>
-            </div>
-
-            {/* ─── PROFIT & LOSS ─── */}
-            <div className="divider"/>
-            <div className="stitle">Profit & Loss (Annual)</div>
+            <div className="stitle">Financials (Annual)</div>
             <div className="g2">
               <div className="fg">
                 <label>Annual Revenue ($)</label>
@@ -967,14 +903,10 @@ Keep replies short, friendly, and helpful. No emojis.`,
                 <label>Net Income ($)</label>
                 <input type="number" inputMode="numeric" value={p.netIncome} onChange={e=>setP(v=>({...v,netIncome:e.target.value}))} placeholder="145000"/>
               </div>
-            </div>
-
-            {/* ─── PAIN POINTS ─── */}
-            <div className="divider"/>
-            <div className="stitle">Biggest Pain Points</div>
-            <p style={{fontSize:'.82rem',color:'#666',marginBottom:'.75rem',lineHeight:1.55}}>These inform the AI-generated opportunity cards on the Opportunities page. Be specific.</p>
-            <div className="fg">
-              <textarea value={p.painPoints} onChange={e=>setP(v=>({...v,painPoints:e.target.value}))} placeholder="Chasing invoices, no-shows, slow seasons, can't find good help..." style={{minHeight:'100px'}}/>
+              <div className="fg full">
+                <label>Biggest Pain Points</label>
+                <textarea value={p.painPoints} onChange={e=>setP(v=>({...v,painPoints:e.target.value}))} placeholder="Chasing invoices, no-shows, slow seasons..."/>
+              </div>
             </div>
 
             {!isPremium && submitted && (
@@ -984,7 +916,7 @@ Keep replies short, friendly, and helpful. No emojis.`,
                   <div style={{fontSize:'.8rem',color:'#666'}}>Unlock Opportunities, Goals, and SMS reminders. $9.98/month.</div>
                   {checkoutError && <div style={{fontSize:'.75rem',color:'#e05252',marginTop:'.3rem'}}>{checkoutError}</div>}
                 </div>
-                <button className="btn bp" style={{width:'auto',whiteSpace:'nowrap'}} onClick={handleUpgrade} disabled={checkoutLoading}>{checkoutLoading ? 'Redirecting...' : 'Upgrade \u2014 $9.98/mo'}</button>
+                <button className="btn bp" style={{width:'auto',whiteSpace:'nowrap'}} onClick={handleUpgrade} disabled={checkoutLoading}>{checkoutLoading ? 'Redirecting...' : 'Upgrade — $9.98/mo'}</button>
               </div>
             )}
 
@@ -1032,17 +964,7 @@ Keep replies short, friendly, and helpful. No emojis.`,
                             value={canvas[c.k] || ''}
                             maxLength={400}
                             onChange={e => saveCanvasCell(c.k, e.target.value)}
-                            placeholder={({
-                              problem: "What problem does your business solve for customers?",
-                              solution: "How does your business solve that problem?",
-                              uvp: "Why should customers choose you over the competition?",
-                              unfair: "What do you have that competitors can't easily copy?",
-                              segments: "Who are your ideal customers? Be specific.",
-                              metrics: "What key numbers do you track? (jobs/month, close rate...)",
-                              channels: "How do customers find you? (referrals, Google, ads...)",
-                              revenue: "How do you make money? (service calls, contracts...)",
-                              cost: "What are your biggest costs? (labor, materials, trucks...)",
-                            })[c.k] || "Describe this section of your business..."}
+                            placeholder="—"
                           />
                         </div>
                       );
@@ -1066,16 +988,17 @@ Keep replies short, friendly, and helpful. No emojis.`,
             {!isPremium
               ? <div className="blur-gate-wrap">
                   <div className="blur-gate-content">
+                    {/* Placeholder cards that look real but are blurred */}
                     {[
                       {label:"Revenue Streams", cards:[
-                        {title:"Introduce a recurring maintenance contract", impact:"High", insight:"Trades businesses with annual service agreements generate 30–40% more predictable revenue."},
-                        {title:"Add a premium response tier for urgent calls", impact:"Medium", insight:"Customers who need same-day service will pay a 20–40% premium. A Priority Response offering captures high-margin emergency revenue."},
+                        {title:"Introduce a recurring maintenance contract", impact:"High", insight:"Trades businesses with annual service agreements generate 30–40% more predictable revenue. A simple $299/yr inspection contract sold to your top 20 existing customers could add $6,000+ in guaranteed annual income with minimal extra labor."},
+                        {title:"Add a premium response tier for urgent calls", impact:"Medium", insight:"Customers who need same-day service will pay a 20–40% premium without hesitation. Creating a 'Priority Response' offering for $150/call positions you above competitors and captures high-margin emergency revenue."},
                       ]},
                       {label:"Problem", cards:[
-                        {title:"Address your highest-volume pain point first", impact:"High", insight:"Solving even 50% of your top pain point could free up 5+ hours per week and improve your close rate on repeat business."},
+                        {title:"Address your highest-volume pain point first", impact:"High", insight:"Based on your inputs, your top pain point is costing you time and money every week. Solving even 50% of this friction could free up 5+ hours per week and improve your close rate on repeat business."},
                       ]},
                       {label:"Key Metrics", cards:[
-                        {title:"Track job profitability by service type", impact:"Medium", insight:"Most trade business owners don't know which jobs actually make money. Tracking gross profit per job type usually reveals one service driving 60%+ of real profit."},
+                        {title:"Track job profitability by service type", impact:"Medium", insight:"Most trade business owners don't know which jobs actually make money after labor and materials. Tracking gross profit per job type for 30 days usually reveals one service that accounts for 60%+ of real profit."},
                       ]},
                     ].map((group) => (
                       <div key={group.label} className="opp-section">
@@ -1139,7 +1062,11 @@ Keep replies short, friendly, and helpful. No emojis.`,
             {!isPremium
               ? <div className="blur-gate-wrap">
                   <div className="blur-gate-content">
-                    <div className="money-unlocked"><span className="mu-label">Money Unlocked</span><span className="mu-value">$18,500</span></div>
+                    {/* Placeholder goal cards that look real but are blurred */}
+                    <div className="money-unlocked">
+                      <span className="mu-label">Money Unlocked</span>
+                      <span className="mu-value">$18,500</span>
+                    </div>
                     {[
                       {title:"Introduce a recurring maintenance contract", status:"In Progress", value:9200, steps:[
                         {text:"Draft a simple 1-page service agreement template", time:"2 hours", done:true},
@@ -1154,7 +1081,9 @@ Keep replies short, friendly, and helpful. No emojis.`,
                       ]},
                     ].map((goal, i) => (
                       <div key={i} className="goal-card">
-                        <div className="goal-top"><input className="goal-title-input" value={goal.title} readOnly/></div>
+                        <div className="goal-top">
+                          <input className="goal-title-input" value={goal.title} readOnly/>
+                        </div>
                         <div className="goal-meta">
                           <span className={`goal-status ${goal.status==='In Progress'?'gs-ip':'gs-ns'}`}>{goal.status}</span>
                           <div className="goal-value-wrap">
@@ -1281,6 +1210,18 @@ Keep replies short, friendly, and helpful. No emojis.`,
                           })}
                       </>
                   }
+
+                  {/* Cancel Premium */}
+                  <div style={{marginTop:'2rem',paddingTop:'1rem',borderTop:'1px solid #1e1e1e',textAlign:'center'}}>
+                    <button
+                      className="btn bg"
+                      style={{fontSize:'.65rem',padding:'.4rem 1rem',color:'#555'}}
+                      onClick={handleManageBilling}
+                      disabled={billingLoading}
+                    >
+                      {billingLoading ? 'Opening...' : 'Manage Subscription'}
+                    </button>
+                  </div>
                 </>
             }
           </>}
