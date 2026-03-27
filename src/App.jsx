@@ -230,6 +230,8 @@ export default function App() {
   });
   const [submitted,    setSubmitted]    = useState(false);
   const [saving,       setSaving]       = useState(false);
+  const [autoSaved,    setAutoSaved]    = useState(false);
+  const profileLoaded  = useRef(false);
 
   // -- CANVAS --------------------------------------------------------------
   const [canvas,       setCanvas]       = useState({});
@@ -487,6 +489,21 @@ export default function App() {
     }, { onConflict: 'user_id' });
     setSaving(false);
   }, [session, p]);
+
+  // -- AUTO-SAVE PROFILE (debounced) -----------------------------------------
+  useEffect(() => {
+    if (!session) return;
+    // Skip the initial load from DB
+    if (!profileLoaded.current) { profileLoaded.current = true; return; }
+    // Don't auto-save if nothing meaningful is entered
+    if (!p.bizName && !p.trade && !p.annualRev) return;
+    const timer = setTimeout(async () => {
+      await saveProfile();
+      setAutoSaved(true);
+      setTimeout(() => setAutoSaved(false), 2000);
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, [session, p, saveProfile]);
 
   // -- CONTEXT STRING FOR AI -------------------------------------------------
   const ctx = () => `Business:${p.bizName}
@@ -839,7 +856,7 @@ Keep replies short, friendly, and helpful. No emojis.`,
 
           {/* -- INPUT TAB ------------------------------------------------ */}
           {tab==="input" && <>
-            <div className="stitle">Your Business</div>
+            <div className="stitle">Your Business{autoSaved && <span className="save-indicator" style={{marginLeft:'.5rem',fontSize:'.72rem'}}>Saved</span>}</div>
             <div className="g2">
               <div className="fg">
                 <label>Business Name</label>
