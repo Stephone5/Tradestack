@@ -7,7 +7,8 @@ body{background:#0e0e0e;}
 .lp{background:#0e0e0e;color:#e8e0d4;font-family:'Barlow',sans-serif;font-weight:300;line-height:1.7;min-height:100vh;}
 
 /* NAV */
-.lp-nav{position:sticky;top:0;z-index:100;background:#0e0e0e;border-bottom:1px solid #1a1a1a;padding:.9rem 1.5rem;display:flex;align-items:center;justify-content:space-between;}
+.lp-nav{position:sticky;top:0;z-index:100;background:#0e0e0e;border-bottom:1px solid #1a1a1a;padding:.9rem 1.5rem;display:flex;align-items:center;justify-content:space-between;position:relative;}
+.lp-nav-tagline{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:#e8e0d4;position:absolute;left:50%;transform:translateX(-50%);white-space:nowrap;}
 .lp-logo{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:1.15rem;letter-spacing:.1em;text-transform:uppercase;color:#f5a623;}
 .lp-logo span{color:#e8e0d4;}
 .lp-nav-btn{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:#0e0e0e;background:#f5a623;border:none;padding:.55rem 1.2rem;cursor:pointer;border-radius:2px;transition:background .15s;}
@@ -88,6 +89,7 @@ export default function LandingPage({ onSignIn }) {
         {/* NAV */}
         <nav className="lp-nav">
           <div className="lp-logo">Trade<span>Stack</span></div>
+          <div className="lp-nav-tagline">OBT<span style={{color:'#f5a623',fontWeight:800}}>AI</span>N WHAT OTHERS OVERLOOK.</div>
           <button className="lp-nav-btn" onClick={onSignIn}>Sign Up Free</button>
         </nav>
 
@@ -207,8 +209,8 @@ export default function LandingPage({ onSignIn }) {
         <section className="lp-final">
           <div className="lp-inner">
             <div className="lp-eyebrow">Get Started</div>
-            <h2 className="lp-h2">Your business has answers in it.<br/>Let's find them.</h2>
-            <p className="lp-p">Free to start. No credit card. Three minutes to your Lean Canvas.</p>
+            <h2 className="lp-h2">OBT<span>AI</span>N WHAT OTHERS OVERLOOK.</h2>
+            <p className="lp-p">Your business has answers in it. Free to start. No credit card. Three minutes to your Lean Canvas.</p>
             <button className="lp-cta" onClick={onSignIn}>Sign Up Free</button>
           </div>
         </section>
