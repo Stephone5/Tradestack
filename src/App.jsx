@@ -112,6 +112,24 @@ textarea{resize:vertical;min-height:80px;}
 .pos{color:#4caf82;}.neg{color:#e05252;}.neu{color:#e8e0d4;}
 .fc-sub{font-size:.8rem;color:#555;margin-top:.2rem;}
 
+/* LEGAL MODAL */
+.legal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:500;display:flex;align-items:center;justify-content:center;padding:1rem;}
+.legal-modal{background:#141414;border:1px solid #2a2a2a;border-top:3px solid #f5a623;border-radius:3px;max-width:560px;width:100%;max-height:88vh;display:flex;flex-direction:column;}
+.legal-modal-hd{padding:1.1rem 1.5rem .8rem;border-bottom:1px solid #1e1e1e;flex-shrink:0;}
+.legal-modal-title{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:1.1rem;letter-spacing:.1em;text-transform:uppercase;color:#f5a623;}
+.legal-modal-body{padding:1rem 1.5rem;overflow-y:auto;flex:1;}
+.legal-modal-body h3{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;color:#888;margin:1rem 0 .3rem;}
+.legal-modal-body h3:first-child{margin-top:0;}
+.legal-modal-body p{font-size:.88rem;color:#666;line-height:1.65;}
+.legal-modal-ft{padding:.75rem 1.5rem 1.1rem;border-top:1px solid #1e1e1e;display:flex;flex-direction:column;gap:.5rem;flex-shrink:0;}
+
+/* AI DISCLAIMER BANNER */
+.ai-disclaimer{text-align:center;padding:.4rem 1rem;background:#111;border-bottom:1px solid #1a1a1a;font-family:'Barlow Condensed',sans-serif;font-size:.62rem;font-weight:600;letter-spacing:.11em;text-transform:uppercase;color:#444;}
+
+/* LEGAL FOOTER LINK */
+.legal-pg-link{display:block;text-align:center;padding:2.5rem 0 .25rem;font-family:'Barlow Condensed',sans-serif;font-size:.62rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:#2a2a2a;background:none;border:none;cursor:pointer;width:100%;}
+.legal-pg-link:hover{color:#555;}
+
 /* LOADING */
 .loader{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:3rem 1rem;gap:.65rem;color:#555;}
 .lbar{width:140px;height:2px;background:#222;position:relative;overflow:hidden;}
@@ -262,18 +280,16 @@ export default function App() {
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [checkoutError,   setCheckoutError]   = useState(null);
   const [pendingUpgrade,  setPendingUpgrade]  = useState(false);
+  const [legalAcknowledged, setLegalAcknowledged] = useState(false);
+  const [showLegalModal,    setShowLegalModal]    = useState(false); // false | 'upgrade' | 'view'
 
-  const handleUpgrade = async () => {
-    if (isPremium) { setCheckoutError('You already have an active Premium subscription.'); return; }
+  const startCheckout = async () => {
     setCheckoutLoading(true);
     setCheckoutError(null);
     try {
       sessionStorage.setItem('ts_pre_checkout_tab', tab);
       const data = await callEdge('create-checkout', {}, session);
-      if (data?.url) {
-        window.location.href = data.url;
-        return;
-      }
+      if (data?.url) { window.location.href = data.url; return; }
       if (data?.error === 'Already subscribed') {
         setIsPremium(true);
         setCheckoutError('You already have an active subscription! Refreshing...');
@@ -286,6 +302,21 @@ export default function App() {
       setCheckoutError('Could not connect to payment service. Please try again.');
     }
     setCheckoutLoading(false);
+  };
+
+  const handleUpgrade = async () => {
+    if (isPremium) { setCheckoutError('You already have an active Premium subscription.'); return; }
+    if (!legalAcknowledged) { setShowLegalModal('upgrade'); return; }
+    await startCheckout();
+  };
+
+  const acceptLegal = async () => {
+    const { error } = await supabase.from('businesses')
+      .update({ legal_acknowledged_at: new Date().toISOString() })
+      .eq('user_id', session.user.id);
+    if (!error) setLegalAcknowledged(true);
+    setShowLegalModal(false);
+    await startCheckout();
   };
 
   // -- CHECKOUT RETURN: poll for subscription activation ------------------
@@ -396,6 +427,7 @@ export default function App() {
         timezone:    data.timezone    || Intl.DateTimeFormat().resolvedOptions().timeZone,
       });
       setSubmitted(true);
+      if (data.legal_acknowledged_at) setLegalAcknowledged(true);
     }
   }
 
@@ -880,6 +912,11 @@ Keep replies short, friendly, and helpful. No emojis.`,
           ))}
         </div>
 
+        {/* AI DISCLAIMER BANNER — all tabs except input */}
+        {tab !== "input" && (
+          <div className="ai-disclaimer">AI-generated content -- not legal or financial advice. Consult a qualified professional before acting on any recommendation.</div>
+        )}
+
         <div className="pg">
 
           {/* -- INPUT TAB ------------------------------------------------ */}
@@ -1267,6 +1304,9 @@ Keep replies short, friendly, and helpful. No emojis.`,
             }
           </>}
 
+          {/* LEGAL LINK */}
+          <button className="legal-pg-link" onClick={() => setShowLegalModal('view')}>Legal</button>
+
         </div>{/* end .pg */}
 
         {/* -- CUSTOMER SERVICE BUBBLE ------------------------------------ */}
@@ -1306,6 +1346,39 @@ Keep replies short, friendly, and helpful. No emojis.`,
         </div>
 
       </div>
+
+      {/* -- LEGAL MODAL ------------------------------------------------- */}
+      {showLegalModal && (
+        <div className="legal-overlay" onClick={() => setShowLegalModal(false)}>
+          <div className="legal-modal" onClick={e => e.stopPropagation()}>
+            <div className="legal-modal-hd">
+              <div className="legal-modal-title">AI Disclaimer + Terms of Use</div>
+            </div>
+            <div className="legal-modal-body">
+              <p>TradeStack uses artificial intelligence to analyze your business data and generate insights, recommendations, and financial estimates. Please read the following before continuing.</p>
+              <h3>Not Professional Advice</h3>
+              <p>All content generated by TradeStack -- including opportunity cards, financial estimates, goal plans, canvas scores, and any other analysis -- is produced by AI and is for informational purposes only. It does not constitute professional legal, financial, accounting, or business advice.</p>
+              <h3>AI Can Make Mistakes</h3>
+              <p>Artificial intelligence can produce inaccurate, incomplete, or misleading information. TradeStack does not guarantee the accuracy or reliability of any AI-generated content.</p>
+              <h3>Seek Professional Guidance</h3>
+              <p>Before acting on any recommendation, estimate, or suggestion provided by TradeStack, consult a qualified professional -- including a licensed attorney, certified financial advisor, or accountant.</p>
+              <h3>Limitation of Liability</h3>
+              <p>By using TradeStack, you agree that TradeStack and its operators are not liable for any loss, damage, or harm -- including financial loss, business decisions made in reliance on AI output, data loss, or inaccuracies -- arising from your use of this service.</p>
+              <h3>No Legal Action</h3>
+              <p>You agree not to bring any legal claim against TradeStack, its owners, operators, or affiliates based on the accuracy, completeness, or reliability of AI-generated content, any recommendation made, or any loss incurred while using the service.</p>
+            </div>
+            <div className="legal-modal-ft">
+              {showLegalModal === 'upgrade' && (
+                <button className="btn bp" onClick={acceptLegal}>I Understand and Agree -- Continue to Checkout</button>
+              )}
+              <button className="btn bg" onClick={() => setShowLegalModal(false)}>
+                {showLegalModal === 'upgrade' ? 'Cancel' : 'Close'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </>
   );
 }
