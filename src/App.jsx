@@ -464,6 +464,10 @@ export default function App() {
     setSubmitted(false); setCanvas({}); setCanvasScores({});
     setOpps([]); setGoals([]); setGoalSteps({});
     setCsMessages([]); setTab("input"); setIsPremium(false);
+    await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: 'https://www.tradestack.biz' }
+    });
   };
 
   // -- SAVE PROFILE ---------------------------------------------------------
