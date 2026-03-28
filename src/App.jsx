@@ -232,6 +232,7 @@ export default function App() {
   const [submitted,    setSubmitted]    = useState(false);
   const [saving,       setSaving]       = useState(false);
   const [autoSaved,    setAutoSaved]    = useState(false);
+  const [saveError,    setSaveError]    = useState(null);
   const profileLoaded  = useRef(false);
 
   // -- CANVAS --------------------------------------------------------------
@@ -491,7 +492,8 @@ export default function App() {
       updated_at:   new Date().toISOString(),
     }, { onConflict: 'user_id' });
     setSaving(false);
-    if (error) { console.error('saveProfile upsert failed:', JSON.stringify(error)); return false; }
+    if (error) { console.error('saveProfile upsert failed:', JSON.stringify(error)); setSaveError(error.message || JSON.stringify(error)); return false; }
+    setSaveError(null);
     return true;
   }, [session, p]);
 
@@ -883,6 +885,7 @@ Keep replies short, friendly, and helpful. No emojis.`,
           {/* -- INPUT TAB ------------------------------------------------ */}
           {tab==="input" && <>
             <div className="stitle">Your Business{autoSaved && <span className="save-indicator" style={{marginLeft:'.5rem',fontSize:'.72rem'}}>Saved</span>}</div>
+            {saveError && <div style={{background:'#2a1010',border:'1px solid #e05252',borderRadius:'3px',padding:'.6rem .85rem',marginBottom:'.75rem',fontSize:'.85rem',color:'#e05252',fontFamily:"'Barlow',sans-serif"}}>Save error: {saveError}</div>}
             <div className="g2">
               <div className="fg">
                 <label>Business Name</label>
