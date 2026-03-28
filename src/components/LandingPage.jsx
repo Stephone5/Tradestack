@@ -79,8 +79,8 @@ body{background:#0e0e0e;}
 .lp-footer-note{font-size:.65rem;color:#333;letter-spacing:.08em;}
 
 /* NAV TAGLINE */
-.lp-nav-tagline{font-family:'Barlow Condensed',sans-serif;font-size:.65rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:#444;display:none;}
-.lp-nav-tagline em{font-style:normal;color:#333;}
+.lp-nav-tagline{font-family:'Barlow Condensed',sans-serif;font-size:1.2rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#e8e0d4;display:none;}
+.lp-nav-tagline .ai{color:#f5a623;}
 @media(min-width:560px){.lp-nav-tagline{display:block;}}
 `;
 
@@ -93,7 +93,7 @@ export default function LandingPage({ onSignIn }) {
         {/* NAV */}
         <nav className="lp-nav">
           <div className="lp-logo">Trade<span>Stack</span></div>
-          <div className="lp-nav-tagline">Obtain what others overlook. <em>- Marcus Aurelius...maybe.</em></div>
+          <div className="lp-nav-tagline">Obt<span className="ai">ai</span>n what others overlook.</div>
           <button className="lp-nav-btn" onClick={onSignIn}>Sign Up / Login</button>
         </nav>
 
