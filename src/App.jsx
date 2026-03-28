@@ -124,11 +124,11 @@ textarea{resize:vertical;min-height:80px;}
 .legal-modal-ft{padding:.75rem 1.5rem 1.1rem;border-top:1px solid #1e1e1e;display:flex;flex-direction:column;gap:.5rem;flex-shrink:0;}
 
 /* AI DISCLAIMER BANNER */
-.ai-disclaimer{text-align:center;padding:.4rem 1rem;background:#111;border-bottom:1px solid #1a1a1a;font-family:'Barlow Condensed',sans-serif;font-size:.62rem;font-weight:600;letter-spacing:.11em;text-transform:uppercase;color:#444;}
+.ai-disclaimer{text-align:center;padding:.4rem 1rem;background:#111;border-bottom:1px solid #1a1a1a;font-family:'Barlow Condensed',sans-serif;font-size:.62rem;font-weight:600;letter-spacing:.11em;text-transform:uppercase;color:#555;}
 
 /* LEGAL FOOTER LINK */
-.legal-pg-link{display:block;text-align:center;padding:2.5rem 0 .25rem;font-family:'Barlow Condensed',sans-serif;font-size:.62rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:#2a2a2a;background:none;border:none;cursor:pointer;width:100%;}
-.legal-pg-link:hover{color:#555;}
+.legal-pg-link{display:block;text-align:center;padding:2.5rem 0 .25rem;font-family:'Barlow Condensed',sans-serif;font-size:.62rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:#444;background:none;border:none;cursor:pointer;width:100%;}
+.legal-pg-link:hover{color:#888;}
 
 /* LOADING */
 .loader{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:3rem 1rem;gap:.65rem;color:#555;}
@@ -914,7 +914,7 @@ Keep replies short, friendly, and helpful. No emojis.`,
 
         {/* AI DISCLAIMER BANNER — all tabs except input */}
         {tab !== "input" && (
-          <div className="ai-disclaimer">AI-generated content -- not legal or financial advice. Consult a qualified professional before acting on any recommendation.</div>
+          <div className="ai-disclaimer">AI-GENERATED CONTENT - NOT LEGAL OR FINANCIAL ADVICE.</div>
         )}
 
         <div className="pg">
@@ -1013,7 +1013,7 @@ Keep replies short, friendly, and helpful. No emojis.`,
                   <div style={{fontSize:'.92rem',color:'#666'}}>Unlock Opportunities, Goals, and SMS reminders. $9.98/month.</div>
                   {checkoutError && <div style={{fontSize:'.85rem',color:'#e05252',marginTop:'.3rem'}}>{checkoutError}</div>}
                 </div>
-                <button className="btn bp" style={{width:'auto',whiteSpace:'nowrap'}} onClick={handleUpgrade} disabled={checkoutLoading}>{checkoutLoading ? 'Redirecting...' : 'Upgrade -- $9.98/mo'}</button>
+                <button className="btn bp" style={{width:'auto',whiteSpace:'nowrap'}} onClick={handleUpgrade} disabled={checkoutLoading}>{checkoutLoading ? 'Redirecting...' : 'Upgrade - $9.98/mo'}</button>
               </div>
             )}
 
@@ -1035,7 +1035,7 @@ Keep replies short, friendly, and helpful. No emojis.`,
 
           {/* -- CANVAS TAB ----------------------------------------------- */}
           {tab==="canvas" && <>
-            <div className="stitle">Lean Canvas -- {p.bizName}{scoreLoading && <span className="save-indicator" style={{marginLeft:'.5rem',fontSize:'.72rem',color:'#888'}}>Scoring...</span>}</div>
+            <div className="stitle">Lean Canvas - {p.bizName}{scoreLoading && <span className="save-indicator" style={{marginLeft:'.5rem',fontSize:'.72rem',color:'#888'}}>Scoring...</span>}</div>
             <div className="canvas">
               {CELLS.map(c => (
                 <div key={c.k} className="cc">
@@ -1097,8 +1097,8 @@ Keep replies short, friendly, and helpful. No emojis.`,
                   <div className="blur-gate-overlay">
                     <div className="blur-gate-eyebrow">Premium Feature</div>
                     <div className="blur-gate-title">See What Matters<br/>For Your Business</div>
-                    <div className="blur-gate-sub">AI-generated opportunities built from your actual canvas -- showing exactly where 20% of effort drives 80% of results.</div>
-                    <button className="btn bp" style={{width:'auto'}} onClick={handleUpgrade} disabled={checkoutLoading}>{checkoutLoading ? 'Redirecting...' : 'Upgrade -- $9.98/mo'}</button>
+                    <div className="blur-gate-sub">AI-generated opportunities built from your actual canvas - showing exactly where 20% of effort drives 80% of results.</div>
+                    <button className="btn bp" style={{width:'auto'}} onClick={handleUpgrade} disabled={checkoutLoading}>{checkoutLoading ? 'Redirecting...' : 'Upgrade - $9.98/mo'}</button>
                     {checkoutError && <div style={{fontSize:'.85rem',color:'#e05252'}}>{checkoutError}</div>}
                     <div className="blur-gate-price">Cancel anytime. Instant access.</div>
                   </div>
@@ -1117,7 +1117,7 @@ Keep replies short, friendly, and helpful. No emojis.`,
                           {group.cards.map(opp => (
                             <div key={opp.id} className="opp-card">
                               {migratedMsg[opp.id]
-                                ? <div className="opp-migrated">This became a goal -- check the Goals tab</div>
+                                ? <div className="opp-migrated">This became a goal - check the Goals tab</div>
                                 : <>
                                     <div className="opp-card-top">
                                       <div className="opp-title">{opp.title}</div>
@@ -1191,7 +1191,7 @@ Keep replies short, friendly, and helpful. No emojis.`,
                     <div className="blur-gate-eyebrow">Premium Feature</div>
                     <div className="blur-gate-title">Turn Insight<br/>Into Action</div>
                     <div className="blur-gate-sub">AI-generated step-by-step plans with time estimates and dollar values. Optional daily SMS reminders at 8pm to keep you moving.</div>
-                    <button className="btn bp" style={{width:'auto'}} onClick={handleUpgrade} disabled={checkoutLoading}>{checkoutLoading ? 'Redirecting...' : 'Upgrade -- $9.98/mo'}</button>
+                    <button className="btn bp" style={{width:'auto'}} onClick={handleUpgrade} disabled={checkoutLoading}>{checkoutLoading ? 'Redirecting...' : 'Upgrade - $9.98/mo'}</button>
                     {checkoutError && <div style={{fontSize:'.85rem',color:'#e05252'}}>{checkoutError}</div>}
                     <div className="blur-gate-price">Cancel anytime. Instant access.</div>
                   </div>
@@ -1357,19 +1357,19 @@ Keep replies short, friendly, and helpful. No emojis.`,
             <div className="legal-modal-body">
               <p>TradeStack uses artificial intelligence to analyze your business data and generate insights, recommendations, and financial estimates. Please read the following before continuing.</p>
               <h3>Not Professional Advice</h3>
-              <p>All content generated by TradeStack -- including opportunity cards, financial estimates, goal plans, canvas scores, and any other analysis -- is produced by AI and is for informational purposes only. It does not constitute professional legal, financial, accounting, or business advice.</p>
+              <p>All content generated by TradeStack - including opportunity cards, financial estimates, goal plans, canvas scores, and any other analysis - is produced by AI and is for informational purposes only. It does not constitute professional legal, financial, accounting, or business advice.</p>
               <h3>AI Can Make Mistakes</h3>
               <p>Artificial intelligence can produce inaccurate, incomplete, or misleading information. TradeStack does not guarantee the accuracy or reliability of any AI-generated content.</p>
               <h3>Seek Professional Guidance</h3>
-              <p>Before acting on any recommendation, estimate, or suggestion provided by TradeStack, consult a qualified professional -- including a licensed attorney, certified financial advisor, or accountant.</p>
+              <p>Before acting on any recommendation, estimate, or suggestion provided by TradeStack, consult a qualified professional - including a licensed attorney, certified financial advisor, or accountant.</p>
               <h3>Limitation of Liability</h3>
-              <p>By using TradeStack, you agree that TradeStack and its operators are not liable for any loss, damage, or harm -- including financial loss, business decisions made in reliance on AI output, data loss, or inaccuracies -- arising from your use of this service.</p>
+              <p>By using TradeStack, you agree that TradeStack and its operators are not liable for any loss, damage, or harm - including financial loss, business decisions made in reliance on AI output, data loss, or inaccuracies - arising from your use of this service.</p>
               <h3>No Legal Action</h3>
               <p>You agree not to bring any legal claim against TradeStack, its owners, operators, or affiliates based on the accuracy, completeness, or reliability of AI-generated content, any recommendation made, or any loss incurred while using the service.</p>
             </div>
             <div className="legal-modal-ft">
               {showLegalModal === 'upgrade' && (
-                <button className="btn bp" onClick={acceptLegal}>I Understand and Agree -- Continue to Checkout</button>
+                <button className="btn bp" onClick={acceptLegal}>I Understand and Agree - Continue to Checkout</button>
               )}
               <button className="btn bg" onClick={() => setShowLegalModal(false)}>
                 {showLegalModal === 'upgrade' ? 'Cancel' : 'Close'}

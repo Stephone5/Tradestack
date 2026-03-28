@@ -93,7 +93,7 @@ export default function LandingPage({ onSignIn }) {
         {/* NAV */}
         <nav className="lp-nav">
           <div className="lp-logo">Trade<span>Stack</span></div>
-          <div className="lp-nav-tagline">Obtain what others overlook. <em>-- Marcus Aurelius...maybe.</em></div>
+          <div className="lp-nav-tagline">Obtain what others overlook. <em>- Marcus Aurelius...maybe.</em></div>
           <button className="lp-nav-btn" onClick={onSignIn}>Sign Up / Login</button>
         </nav>
 
@@ -214,7 +214,7 @@ export default function LandingPage({ onSignIn }) {
           <div className="lp-inner">
             <div className="lp-eyebrow">Get Started</div>
             <h2 className="lp-h2">Obtain what others overlook.</h2>
-            <p style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:'.78rem',fontWeight:600,letterSpacing:'.12em',textTransform:'uppercase',color:'#555',marginBottom:'1.4rem'}}>-- Marcus Aurelius...maybe.</p>
+            <p style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:'.78rem',fontWeight:600,letterSpacing:'.12em',textTransform:'uppercase',color:'#555',marginBottom:'1.4rem'}}>- Marcus Aurelius...maybe.</p>
             <p className="lp-p">Free to start. No credit card. Three minutes to your Lean Canvas.</p>
             <button className="lp-cta" onClick={onSignIn}>Sign Up / Login</button>
           </div>
