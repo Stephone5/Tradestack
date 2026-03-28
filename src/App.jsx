@@ -455,6 +455,7 @@ export default function App() {
 
   const signOut = async () => {
     await supabase.auth.signOut();
+    profileLoaded.current = false;
     setSession(null);
     setP({ bizName:"",trade:"",location:"",yearsOp:"",employees:"",
            annualRev:"",cogs:"",opEx:"",netIncome:"",topService:"",
@@ -467,9 +468,9 @@ export default function App() {
 
   // -- SAVE PROFILE ---------------------------------------------------------
   const saveProfile = useCallback(async () => {
-    if (!session) return;
+    if (!session) return false;
     setSaving(true);
-    await supabase.from('businesses').upsert({
+    const { error } = await supabase.from('businesses').upsert({
       user_id:      session.user.id,
       biz_name:     p.bizName,
       trade:        p.trade,
@@ -488,6 +489,8 @@ export default function App() {
       updated_at:   new Date().toISOString(),
     }, { onConflict: 'user_id' });
     setSaving(false);
+    if (error) { console.error('saveProfile upsert failed:', JSON.stringify(error)); return false; }
+    return true;
   }, [session, p]);
 
   // -- AUTO-SAVE PROFILE (debounced) -----------------------------------------
@@ -498,9 +501,8 @@ export default function App() {
     // Don't auto-save if nothing meaningful is entered
     if (!p.bizName && !p.trade && !p.annualRev) return;
     const timer = setTimeout(async () => {
-      await saveProfile();
-      setAutoSaved(true);
-      setTimeout(() => setAutoSaved(false), 2000);
+      const ok = await saveProfile();
+      if (ok) { setAutoSaved(true); setTimeout(() => setAutoSaved(false), 2000); }
     }, 1500);
     return () => clearTimeout(timer);
   }, [session, p, saveProfile]);
