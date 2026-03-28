@@ -450,13 +450,13 @@ export default function App() {
   const signInWithGoogle = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: window.location.origin }
+      options: { redirectTo: window.location.origin, queryParams: { prompt: 'select_account' } }
     });
     if (error) console.error('Login error:', error.message);
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    await supabase.auth.signOut({ scope: 'global' });
     profileLoaded.current = false;
     setSession(null);
     setP({ bizName:"",trade:"",location:"",yearsOp:"",employees:"",
@@ -468,7 +468,7 @@ export default function App() {
     setCsMessages([]); setTab("input"); setIsPremium(false);
     await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: 'https://www.tradestack.biz' }
+      options: { redirectTo: 'https://www.tradestack.biz', queryParams: { prompt: 'select_account' } }
     });
   };
 
