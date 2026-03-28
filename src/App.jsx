@@ -926,14 +926,7 @@ Keep replies short, friendly, and helpful. No emojis.`,
             <div className="g2">
               {CELLS.map(c => (
                 <div className="fg full" key={c.k}>
-                  <label style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                    {c.l}
-                    {canvasScores[c.k]?.score != null && (
-                      <span className={`score-badge ${scoreClass(canvasScores[c.k].score)}`} style={{fontSize:'.7rem',cursor:'default'}}>
-                        {canvasScores[c.k].score}
-                      </span>
-                    )}
-                  </label>
+                  <label>{c.l}</label>
                   <textarea rows={2} value={canvas[c.k] || ''} onChange={e => saveCanvasCell(c.k, e.target.value)} placeholder={{
                     problem:"What problem does your business solve for customers?",
                     solution:"How do you solve it? What service/product do you deliver?",
