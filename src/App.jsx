@@ -37,6 +37,9 @@ body{background:#0e0e0e;}
 
 /* HEADER */
 .hdr{background:#141414;border-bottom:2px solid #f5a623;padding:0 1rem;display:flex;align-items:center;justify-content:space-between;height:52px;position:sticky;top:0;z-index:100;}
+.hdr-tagline{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:1.2rem;letter-spacing:.06em;text-transform:uppercase;color:#e8e0d4;}
+.hdr-tagline .ai{color:#f5a623;}
+@media(max-width:560px){.hdr-tagline{display:none;}}
 .logo{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:1.5rem;letter-spacing:.08em;text-transform:uppercase;color:#f5a623;}
 .logo span{color:#e8e0d4;}
 .biz-tag{font-family:'Barlow Condensed',sans-serif;font-size:.8rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:#666;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
@@ -889,6 +892,7 @@ Keep replies short, friendly, and helpful. No emojis.`,
         {/* HEADER */}
         <div className="hdr">
           <div className="logo">Trade<span>Stack</span></div>
+          <div className="hdr-tagline">Obt<span className="ai">ai</span>n what others overlook.</div>
           <div className="hdr-right">
             {isPremium && <span className="premium-badge">Premium</span>}
             {submitted && <div className="biz-tag">{p.bizName}</div>}
