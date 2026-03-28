@@ -92,6 +92,7 @@ textarea{resize:vertical;min-height:80px;}
 .cc-lbl{font-family:'Barlow Condensed',sans-serif;font-size:.75rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:#f5a623;}
 .cc-val{font-size:.95rem;line-height:1.55;color:#ccc;white-space:pre-wrap;flex:1;outline:none;background:transparent;border:none;border-bottom:1px solid transparent;width:100%;resize:none;font-family:'Barlow',sans-serif;font-weight:300;transition:border-color .15s;min-height:60px;}
 .cc-val:focus{border-bottom-color:#f5a623;}
+.cc-preview{font-family:'Barlow Condensed',sans-serif;font-size:.68rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:#555;margin-bottom:.15rem;}
 
 /* SCORE BADGE */
 .score-badge{font-family:'Barlow Condensed',sans-serif;font-size:.78rem;font-weight:700;letter-spacing:.06em;padding:.15rem .38rem;border-radius:2px;cursor:pointer;white-space:nowrap;flex-shrink:0;border:none;transition:all .15s;}
@@ -237,6 +238,7 @@ export default function App() {
   const [canvas,       setCanvas]       = useState({});
   const [canvasScores, setCanvasScores] = useState({});
   const [cLoading,     setCLoading]     = useState(false);
+  const [scoreLoading, setScoreLoading] = useState(false);
   const [scoreTooltip, setScoreTooltip] = useState(null); // {key, x, y}
 
   // -- OPPORTUNITIES --------------------------------------------------------
@@ -511,6 +513,26 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [session, p, saveProfile]);
 
+  // -- AUTO-SCORE CANVAS (debounced 3s after canvas change) ------------------
+  useEffect(() => {
+    if (!session || !submitted) return;
+    const hasContent = CELLS.some(c => canvas[c.k]);
+    if (!hasContent) return;
+    const timer = setTimeout(() => { genScores(canvas); }, 3000);
+    return () => clearTimeout(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canvas, session, submitted]);
+
+  // -- AUTO-REGEN OPPORTUNITIES (debounced 8s after canvas change) -----------
+  useEffect(() => {
+    if (!session || !submitted || !isPremium) return;
+    const hasContent = CELLS.some(c => canvas[c.k]);
+    if (!hasContent) return;
+    const timer = setTimeout(() => { genOpportunities(canvas); }, 8000);
+    return () => clearTimeout(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canvas, session, submitted, isPremium]);
+
   // -- CONTEXT STRING FOR AI -------------------------------------------------
   const ctx = () => `Business:${p.bizName}
 Trade:${p.trade}
@@ -554,13 +576,14 @@ PainPoints:${p.painPoints}`;
 
   // -- GENERATE CANVAS SCORES ------------------------------------------------
   const genScores = async (canvasData) => {
+    setScoreLoading(true);
     try {
       const data = await callEdge('claude-proxy', {
         system: `You are a lean canvas analyst. Score each canvas cell 0-100 based on: (1) how optimized the content is, (2) integration with other cells, (3) specificity and actionability. Return ONLY valid JSON: {"problem":{"score":75,"preview":"Cut labor costs"},...} -- one entry per cell key. The preview is 3-5 words describing the top opportunity linked to this cell.`,
         user: `Score this lean canvas:\n${JSON.stringify(canvasData)}\n\nBusiness context:\n${ctx()}`
       }, session);
       const parsed = jp(data?.text || '{}');
-      if (!parsed) return;
+      if (!parsed) { setScoreLoading(false); return; }
       setCanvasScores(parsed);
       // Persist scores
       const rows = Object.entries(parsed).map(([k, v]) => ({
@@ -572,6 +595,7 @@ PainPoints:${p.painPoints}`;
       }));
       await supabase.from('canvas_cells').upsert(rows, { onConflict: 'user_id,cell_key' });
     } catch(e) { console.error('Score error:', e); }
+    setScoreLoading(false);
   };
 
   // -- GENERATE OPPORTUNITIES ------------------------------------------------
@@ -903,7 +927,14 @@ Keep replies short, friendly, and helpful. No emojis.`,
             <div className="g2">
               {CELLS.map(c => (
                 <div className="fg full" key={c.k}>
-                  <label>{c.l}</label>
+                  <label style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                    {c.l}
+                    {canvasScores[c.k]?.score != null && (
+                      <span className={`score-badge ${scoreClass(canvasScores[c.k].score)}`} style={{fontSize:'.7rem',cursor:'default'}}>
+                        {canvasScores[c.k].score}
+                      </span>
+                    )}
+                  </label>
                   <textarea rows={2} value={canvas[c.k] || ''} onChange={e => saveCanvasCell(c.k, e.target.value)} placeholder={{
                     problem:"What problem does your business solve for customers?",
                     solution:"How do you solve it? What service/product do you deliver?",
@@ -975,13 +1006,20 @@ Keep replies short, friendly, and helpful. No emojis.`,
 
           {/* -- CANVAS TAB ----------------------------------------------- */}
           {tab==="canvas" && <>
-            <div className="stitle">Lean Canvas -- {p.bizName}</div>
+            <div className="stitle">Lean Canvas -- {p.bizName}{scoreLoading && <span className="save-indicator" style={{marginLeft:'.5rem',fontSize:'.72rem',color:'#888'}}>Scoring...</span>}</div>
             <div className="canvas">
               {CELLS.map(c => (
                 <div key={c.k} className="cc">
                   <div className="cc-top">
                     <div className="cc-lbl">{c.l}</div>
+                    <button
+                      className={`score-badge ${scoreClass(canvasScores[c.k]?.score)}`}
+                      onClick={e => handleScoreBadgeClick(e, c.k)}
+                    >
+                      {canvasScores[c.k]?.score ?? '--'}
+                    </button>
                   </div>
+                  {canvasScores[c.k]?.preview && <div className="cc-preview">{canvasScores[c.k].preview}</div>}
                   <textarea
                     className="cc-val"
                     value={canvas[c.k] || ''}
