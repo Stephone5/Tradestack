@@ -467,6 +467,7 @@ export default function App() {
       });
       setCanvas(cells);
       setCanvasScores(scores);
+      setSubmitted(true);
     }
   }
 
@@ -1108,7 +1109,7 @@ PainPoints:${p.painPoints}`;
                 : Object.keys(groupedOpps).length === 0
                   ? <div className="empty">
                       <p>No opportunities yet.</p>
-                      <p style={{marginTop:'.5rem'}}>Go to the Input tab and hit "Save & Analyze" to generate your first set.</p>
+                      <p style={{marginTop:'.5rem'}}>Go to the Input tab and hit "Save & View Canvas" to generate your first set.</p>
                     </div>
                   : <>
                       {Object.entries(groupedOpps).map(([key, group]) => (
