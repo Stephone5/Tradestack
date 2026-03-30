@@ -33,14 +33,16 @@ const CSS = `
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 html{-webkit-text-size-adjust:100%;}
 body{background:#0e0e0e;}
+*{scrollbar-width:none;-ms-overflow-style:none;}
+*::-webkit-scrollbar{display:none;}
 .app{min-height:100vh;background:#0e0e0e;color:#e8e0d4;font-family:'Barlow',sans-serif;font-weight:300;}
 
 /* HEADER */
 .hdr{background:#141414;border-bottom:2px solid #f5a623;padding:0 1rem;display:flex;align-items:center;justify-content:space-between;height:52px;position:sticky;top:0;z-index:100;}
-.hdr-tagline{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:1.2rem;letter-spacing:.06em;text-transform:uppercase;color:#e8e0d4;}
+.hdr-left{display:flex;align-items:center;gap:.6rem;min-width:0;overflow:hidden;}
+.hdr-tagline{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:clamp(.6rem,2.2vw,1.2rem);letter-spacing:.06em;text-transform:uppercase;color:#e8e0d4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .hdr-tagline .ai{color:#f5a623;}
-@media(max-width:560px){.hdr-tagline{display:none;}}
-.logo{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:1.5rem;letter-spacing:.08em;text-transform:uppercase;color:#f5a623;}
+.logo{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:clamp(1rem,3vw,1.5rem);letter-spacing:.08em;text-transform:uppercase;color:#f5a623;white-space:nowrap;}
 .logo span{color:#e8e0d4;}
 .biz-tag{font-family:'Barlow Condensed',sans-serif;font-size:.8rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:#666;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .hdr-right{display:flex;align-items:center;gap:.5rem;}
@@ -161,6 +163,7 @@ textarea{resize:vertical;min-height:80px;}
 .money-unlocked{background:#141414;border:1px solid #1a3a2a;border-radius:3px;padding:.85rem 1rem;margin-bottom:1.25rem;display:flex;justify-content:space-between;align-items:center;}
 .mu-label{font-family:'Barlow Condensed',sans-serif;font-size:.78rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#4caf82;}
 .mu-value{font-family:'Barlow Condensed',sans-serif;font-size:1.7rem;font-weight:700;color:#4caf82;}
+.days-hint{font-family:'Barlow',sans-serif;font-size:.75rem;font-weight:300;color:#444;margin-bottom:1rem;line-height:1.4;}
 .goal-card{background:#141414;border:1px solid #222;border-radius:3px;padding:.95rem;margin-bottom:.75rem;transition:opacity .3s;}
 .goal-card.completed{opacity:.45;}
 .goal-top{display:flex;justify-content:space-between;align-items:flex-start;gap:.5rem;margin-bottom:.65rem;}
@@ -904,12 +907,12 @@ Keep replies short, friendly, and helpful. No emojis.`,
 
         {/* HEADER */}
         <div className="hdr">
-          <div className="logo">Trade<span>Stack</span></div>
-          <div className="hdr-tagline">Obt<span className="ai">ai</span>n what others overlook.</div>
+          <div className="hdr-left">
+            <div className="logo">Trade<span>Stack</span></div>
+            <div className="hdr-tagline">Obt<span className="ai">ai</span>n what others overlook.</div>
+          </div>
           <div className="hdr-right">
-            {isPremium && <span className="premium-badge">Premium</span>}
             {submitted && <div className="biz-tag">{p.bizName}</div>}
-            <button className="btn bg" style={{padding:'.4rem .85rem',fontSize:'.75rem'}} onClick={signOut}>Sign Out</button>
           </div>
         </div>
 
@@ -1219,6 +1222,7 @@ Keep replies short, friendly, and helpful. No emojis.`,
                     <span className="mu-label">Money Unlocked</span>
                     <span className="mu-value">${moneyUnlocked.toLocaleString()}</span>
                   </div>
+                  <p className="days-hint">Enter the number of days (X) from the previous step you would like to receive a text reminder for that goal.</p>
 
                   {goals.length === 0
                     ? <div className="empty">
@@ -1286,7 +1290,7 @@ Keep replies short, friendly, and helpful. No emojis.`,
                                           className="step-days-input"
                                           type="number"
                                           min="1"
-                                          placeholder="days"
+                                          placeholder="X"
                                           value={step.days_to_complete ?? ''}
                                           onChange={e => updateStepDays(goal.id, step.id, e.target.value)}
                                         />
@@ -1313,8 +1317,9 @@ Keep replies short, friendly, and helpful. No emojis.`,
                       </>
                   }
 
-                  {/* Cancel Premium */}
-                  <div style={{marginTop:'2rem',paddingTop:'1rem',borderTop:'1px solid #1e1e1e',textAlign:'center'}}>
+                  {/* Bottom bar — Premium badge, Manage Subscription, Sign Out */}
+                  <div style={{marginTop:'2rem',paddingTop:'1rem',borderTop:'1px solid #1e1e1e',display:'flex',alignItems:'center',justifyContent:'center',gap:'1rem',flexWrap:'wrap'}}>
+                    {isPremium && <span className="premium-badge">Premium</span>}
                     <button
                       className="btn bg"
                       style={{fontSize:'.75rem',padding:'.4rem 1rem',color:'#555'}}
@@ -1323,6 +1328,7 @@ Keep replies short, friendly, and helpful. No emojis.`,
                     >
                       {billingLoading ? 'Opening...' : 'Manage Subscription'}
                     </button>
+                    <button className="btn bg" style={{padding:'.4rem .85rem',fontSize:'.75rem'}} onClick={signOut}>Sign Out</button>
                   </div>
                 </>
             }
