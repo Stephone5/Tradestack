@@ -9,9 +9,22 @@ function jp(text) {
 }
 
 async function callEdge(fn, body, session) {
-  const { data, error } = await supabase.functions.invoke(fn, { body });
-  if (error) throw new Error(error.message);
-  return data;
+  const res = await fetch(
+    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/${fn}`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session?.access_token || ''}`,
+        'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+      },
+      body: JSON.stringify(body),
+    }
+  );
+  let json;
+  try { json = await res.json(); } catch { json = {}; }
+  if (!res.ok) throw new Error(json.error || `Edge function error (${res.status})`);
+  return json;
 }
 
 // -- CANVAS CELL DEFINITIONS ------------------------------------------------
