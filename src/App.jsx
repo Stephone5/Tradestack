@@ -1299,22 +1299,23 @@ PainPoints:${p.painPoints}`;
                       </>
                   }
 
-                  {/* Bottom bar — Premium badge, Manage Subscription, Sign Out */}
-                  <div style={{marginTop:'2rem',paddingTop:'1rem',borderTop:'1px solid #1e1e1e',display:'flex',alignItems:'center',justifyContent:'center',gap:'1rem',flexWrap:'wrap'}}>
-                    {isPremium && <span className="premium-badge">Premium</span>}
-                    <button
-                      className="btn bg"
-                      style={{fontSize:'.75rem',padding:'.4rem 1rem',color:'#555'}}
-                      onClick={handleManageBilling}
-                      disabled={billingLoading}
-                    >
-                      {billingLoading ? 'Opening...' : 'Manage Subscription'}
-                    </button>
-                    <button className="btn bg" style={{padding:'.4rem .85rem',fontSize:'.75rem'}} onClick={signOut}>Sign Out</button>
-                  </div>
                 </>
             }
           </>}
+
+          {/* Bottom bar — visible on all tabs */}
+          <div style={{marginTop:'2rem',paddingTop:'1rem',borderTop:'1px solid #1e1e1e',display:'flex',alignItems:'center',justifyContent:'center',gap:'1rem',flexWrap:'wrap'}}>
+            {isPremium && <span className="premium-badge">Premium</span>}
+            <button
+              className="btn bg"
+              style={{fontSize:'.75rem',padding:'.4rem 1rem',color:'#555'}}
+              onClick={handleManageBilling}
+              disabled={billingLoading}
+            >
+              {billingLoading ? 'Opening...' : 'Manage Subscription'}
+            </button>
+            <button className="btn bg" style={{padding:'.4rem .85rem',fontSize:'.75rem'}} onClick={signOut}>Sign Out</button>
+          </div>
 
           {/* LEGAL LINK */}
           <button className="legal-pg-link" onClick={() => setShowLegalModal('view')}>Legal</button>
