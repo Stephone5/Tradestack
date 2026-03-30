@@ -823,12 +823,10 @@ PainPoints:${p.painPoints}`;
     if (!csBody.trim() || csSending) return;
     setCsSending(true);
     try {
-      await supabase.from('support_messages').insert({
-        user_id: session.user.id,
-        email: session.user.email,
-        subject: csSubject.trim() || '(no subject)',
+      await callEdge('support-notify', {
+        subject: csSubject.trim(),
         message: csBody.trim(),
-      });
+      }, session);
       setCsSent(true);
       setCsSubject("");
       setCsBody("");
