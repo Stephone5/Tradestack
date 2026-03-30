@@ -182,6 +182,9 @@ textarea{resize:vertical;min-height:80px;}
 .step-text-input{flex:1;background:transparent;border:none;border-bottom:1px solid transparent;outline:none;color:#ccc;font-family:'Barlow',sans-serif;font-size:.95rem;font-weight:300;transition:border-color .15s;padding-bottom:.1rem;}
 .step-text-input:focus{border-bottom-color:#333;}
 .step-time{font-family:'Barlow Condensed',sans-serif;font-size:.72rem;color:#444;letter-spacing:.06em;white-space:nowrap;}
+.step-days-input{width:3.2rem;background:transparent;border:none;border-bottom:1px solid #333;outline:none;color:#666;font-family:'Barlow Condensed',sans-serif;font-size:.78rem;text-align:center;padding-bottom:.1rem;}
+.step-days-input:focus{border-bottom-color:#f5a623;color:#ccc;}
+.step-days-input::placeholder{color:#444;}
 .sms-toggle-row{display:flex;align-items:center;justify-content:space-between;border-top:1px solid #1e1e1e;padding-top:.65rem;margin-top:.5rem;}
 .sms-toggle-label{font-family:'Barlow Condensed',sans-serif;font-size:.78rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#555;}
 .toggle{position:relative;display:inline-block;width:36px;height:20px;}
@@ -710,7 +713,7 @@ PainPoints:${p.painPoints}`;
     // Generate steps with AI
     try {
       const data = await callEdge('claude-proxy', {
-        system: `You are an execution coach for small business owners. Generate 3-6 specific, actionable steps to achieve this goal. Return ONLY valid JSON array: [{"step_text":"string","time_estimate":"string (e.g. 2 hours, 1 day, 1 week)"}]`,
+        system: `You are an execution coach for small business owners. Generate 3-6 specific, actionable steps to achieve this goal. Return ONLY valid JSON array: [{"step_text":"string"}]`,
         user: `Goal: ${opp.title}\nContext: ${opp.insight}\n\nBusiness:\n${ctx()}`
       }, session);
       const steps = jp(data?.text || '[]');
@@ -719,7 +722,6 @@ PainPoints:${p.painPoints}`;
           goal_id:       goal.id,
           user_id:       session.user.id,
           step_text:     s.step_text,
-          time_estimate: s.time_estimate,
           status:        'not_started',
           sort_order:    i,
         }));
@@ -787,6 +789,17 @@ PainPoints:${p.painPoints}`;
     }));
     await supabase.from('goal_steps')
       .update({ step_text: value, updated_at: new Date().toISOString() }).eq('id', stepId);
+  };
+
+  // -- UPDATE STEP DAYS ------------------------------------------------------
+  const updateStepDays = async (goalId, stepId, value) => {
+    const days = value === '' ? null : parseInt(value, 10) || null;
+    setGoalSteps(prev => ({
+      ...prev,
+      [goalId]: (prev[goalId]||[]).map(s => s.id === stepId ? {...s, days_to_complete: days} : s)
+    }));
+    await supabase.from('goal_steps')
+      .update({ days_to_complete: days, updated_at: new Date().toISOString() }).eq('id', stepId);
   };
 
   // -- TOGGLE SMS FOR GOAL ---------------------------------------------------
@@ -1269,7 +1282,14 @@ Keep replies short, friendly, and helpful. No emojis.`,
                                           onChange={e => updateStepText(goal.id, step.id, e.target.value)}
                                           style={{ textDecoration: step.status==='done'?'line-through':'' }}
                                         />
-                                        {step.time_estimate && <span className="step-time">{step.time_estimate}</span>}
+                                        <input
+                                          className="step-days-input"
+                                          type="number"
+                                          min="1"
+                                          placeholder="days"
+                                          value={step.days_to_complete ?? ''}
+                                          onChange={e => updateStepDays(goal.id, step.id, e.target.value)}
+                                        />
                                       </div>
                                     ))}
                                   </div>

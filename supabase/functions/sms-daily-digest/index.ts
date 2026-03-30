@@ -1,4 +1,4 @@
-// TradeStack â SMS Daily Digest Cron
+// TradeStack — SMS Daily Digest Cron
 // Runs every hour. Sends the 8pm local-time digest to users who have SMS-enabled goals.
 // Schedule this in Supabase Dashboard > Edge Functions > Schedules: "0 * * * *"
 //
@@ -7,7 +7,7 @@
 //   - Send one digest SMS listing active steps across all SMS-enabled goals
 //   - Reply instructions: 1=No, 2=In Progress, 3=Done (applies to first pending step)
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from 'npm:@supabase/supabase-js@2';
 
 const SUPABASE_URL      = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -72,7 +72,7 @@ Deno.serve(async (_req) => {
       const stepLines: string[] = [];
       for (const goal of userGoals) {
         const { data: steps } = await supabase.from('goal_steps')
-          .select('step_text, status, time_estimate')
+          .select('step_text, status, days_to_complete')
           .eq('goal_id', goal.id)
           .neq('status', 'done')
           .order('sort_order')
@@ -81,7 +81,7 @@ Deno.serve(async (_req) => {
         if (steps?.length) {
           stepLines.push(`[${goal.title.slice(0, 30)}]`);
           steps.forEach(s => {
-            const time = s.time_estimate ? ` (${s.time_estimate})` : '';
+            const time = s.days_to_complete ? ` (${s.days_to_complete}d)` : '';
             stepLines.push(`- ${s.step_text.slice(0, 60)}${time}`);
           });
         }
@@ -90,7 +90,7 @@ Deno.serve(async (_req) => {
       if (!stepLines.length) continue;
 
       const message = [
-        `TradeStack Daily â ${now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}`,
+        `TradeStack Daily — ${now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}`,
         '',
         ...stepLines,
         '',
