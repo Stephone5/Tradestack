@@ -307,7 +307,7 @@ export default function App() {
       setCheckoutError(data?.error || 'Could not start checkout. Please try again.');
     } catch(e) {
       console.error('Checkout error:', e);
-      setCheckoutError('Could not connect to payment service. Please try again.');
+      setCheckoutError(e.message || 'Could not connect to payment service. Please try again.');
     }
     setCheckoutLoading(false);
   };
