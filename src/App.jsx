@@ -1328,34 +1328,15 @@ PainPoints:${p.painPoints}`;
                 <span className="cs-title">Contact Support</span>
                 <button className="cs-close" onClick={() => { setCsOpen(false); setCsSent(false); }}>close</button>
               </div>
-              {csSent ? (
-                <div className="cs-form" style={{padding:'1.5rem .85rem',textAlign:'center'}}>
-                  <p style={{color:'#4caf82',fontWeight:700,marginBottom:'.5rem'}}>Message sent</p>
-                  <p style={{color:'#888',fontSize:'.85rem'}}>Stephen will get back to you shortly.</p>
-                  <button className="cs-submit" style={{marginTop:'1rem'}} onClick={() => setCsSent(false)}>Send another</button>
-                </div>
-              ) : (
-                <div className="cs-form">
-                  <input
-                    className="cs-field"
-                    value={csSubject}
-                    onChange={e => setCsSubject(e.target.value)}
-                    placeholder="Subject (optional)"
-                    disabled={csSending}
-                  />
-                  <textarea
-                    className="cs-field cs-textarea"
-                    value={csBody}
-                    onChange={e => setCsBody(e.target.value)}
-                    placeholder="How can we help?"
-                    rows={4}
-                    disabled={csSending}
-                  />
-                  <button className="cs-submit" onClick={sendSupport} disabled={csSending||!csBody.trim()}>
-                    {csSending ? 'Sending...' : 'Send Message'}
-                  </button>
-                </div>
-              )}
+              <div className="cs-form" style={{padding:'1.25rem .85rem',textAlign:'center'}}>
+                <p style={{color:'#888',fontSize:'.88rem',lineHeight:1.55,marginBottom:'.75rem'}}>Have a question? Email us directly and we'll get back to you shortly.</p>
+                <a
+                  href="mailto:s.barton.ok@gmail.com"
+                  style={{color:'#f5a623',fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,fontSize:'.95rem',letterSpacing:'.04em',textDecoration:'none',wordBreak:'break-all'}}
+                >
+                  s.barton.ok@gmail.com
+                </a>
+              </div>
             </div>
           )}
           <button className="cs-btn" onClick={() => setCsOpen(v => !v)}>
