@@ -68,7 +68,7 @@ Deno.serve(async (req) => {
       success_url: APP_URL + '/?checkout=success',
       cancel_url:  APP_URL + '/?checkout=canceled',
       metadata:    { user_id: user.id },
-      subscription_data: { metadata: { user_id: user.id } },
+      subscription_data: { trial_period_days: 7, metadata: { user_id: user.id } },
     });
 
     return new Response(JSON.stringify({ url: session.url }), {

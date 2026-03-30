@@ -72,7 +72,7 @@ Deno.serve(async (req) => {
 
       case 'customer.subscription.updated': {
         const sub    = event.data.object;
-        const status = sub.status === 'active' ? 'active'
+        const status = (sub.status === 'active' || sub.status === 'trialing') ? 'active'
                      : sub.status === 'canceled' ? 'canceled'
                      : 'past_due';
         console.log('customer.subscription.updated — sub:', sub.id, 'status:', status);
