@@ -39,10 +39,9 @@ body{background:#0e0e0e;}
 
 /* HEADER */
 .hdr{background:#141414;border-bottom:2px solid #f5a623;padding:0 1rem;display:flex;align-items:center;justify-content:space-between;height:52px;position:sticky;top:0;z-index:100;}
-.hdr-left{display:flex;align-items:center;gap:.6rem;min-width:0;overflow:hidden;}
-.hdr-tagline{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:clamp(.6rem,2.2vw,1.2rem);letter-spacing:.06em;text-transform:uppercase;color:#e8e0d4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.hdr-tagline{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:clamp(.6rem,2.5vw,1.2rem);letter-spacing:.06em;text-transform:uppercase;color:#e8e0d4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right;}
 .hdr-tagline .ai{color:#f5a623;}
-.logo{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:clamp(1rem,3vw,1.5rem);letter-spacing:.08em;text-transform:uppercase;color:#f5a623;white-space:nowrap;}
+.logo{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:1.5rem;letter-spacing:.08em;text-transform:uppercase;color:#f5a623;white-space:nowrap;flex-shrink:0;}
 .logo span{color:#e8e0d4;}
 .biz-tag{font-family:'Barlow Condensed',sans-serif;font-size:.8rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:#666;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .hdr-right{display:flex;align-items:center;gap:.5rem;}
@@ -907,13 +906,8 @@ Keep replies short, friendly, and helpful. No emojis.`,
 
         {/* HEADER */}
         <div className="hdr">
-          <div className="hdr-left">
-            <div className="logo">Trade<span>Stack</span></div>
-            <div className="hdr-tagline">Obt<span className="ai">ai</span>n what others overlook.</div>
-          </div>
-          <div className="hdr-right">
-            {submitted && <div className="biz-tag">{p.bizName}</div>}
-          </div>
+          <div className="logo">Trade<span>Stack</span></div>
+          <div className="hdr-tagline">Obt<span className="ai">ai</span>n what others overlook.</div>
         </div>
 
         {/* TABS */}
