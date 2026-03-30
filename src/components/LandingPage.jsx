@@ -166,7 +166,7 @@ export default function LandingPage({ onSignIn }) {
         <section className="lp-section--tight lp-section--alt">
           <div className="lp-inner--wide">
             <div className="lp-eyebrow">Pricing</div>
-            <h2 className="lp-h2">Start free. Upgrade when you're ready.</h2>
+            <h2 className="lp-h2">Start free. Try premium free for 7 days.</h2>
             <div className="lp-plans-grid">
               <div className="lp-plan">
                 <div className="lp-plan-label">Free {'\u2014'} Always</div>
@@ -181,7 +181,7 @@ export default function LandingPage({ onSignIn }) {
               </div>
               <div className="lp-plan lp-plan--premium">
                 <div className="lp-plan-label">Premium</div>
-                <div className="lp-plan-price">$9.98 <span>/ month</span></div>
+                <div className="lp-plan-price">$9.98 <span>/ month after 7-day trial</span></div>
                 <ul className="lp-plan-items">
                   <li>Every money leak in your business, named and ranked</li>
                   <li>Every revenue opportunity you haven't touched yet</li>
@@ -191,7 +191,7 @@ export default function LandingPage({ onSignIn }) {
                   <li>A running total of money saved and revenue unlocked</li>
                 </ul>
                 <p className="lp-plan-note">Most users find more than their subscription cost in the first week.</p>
-                <button className="lp-cta lp-cta--wide" onClick={onSignIn}>Start Premium</button>
+                <button className="lp-cta lp-cta--wide" onClick={onSignIn}>Start 7-Day Free Trial</button>
               </div>
             </div>
           </div>
