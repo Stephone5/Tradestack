@@ -225,7 +225,7 @@ textarea{resize:vertical;min-height:80px;}
 .blur-gate-sub{font-size:.92rem;color:#aaa;line-height:1.55;max-width:300px;}
 .blur-gate-price{font-family:'Barlow Condensed',sans-serif;font-size:.82rem;color:#555;}
 
-/* CUSTOMER SERVICE BUBBLE */
+/* CONTACT SUPPORT BUBBLE */
 .cs-bubble{position:fixed;bottom:1.25rem;right:1.25rem;z-index:300;}
 .cs-btn{width:48px;height:48px;background:#f5a623;border:none;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:.85rem;letter-spacing:.06em;color:#0e0e0e;box-shadow:0 2px 12px rgba(0,0,0,.4);transition:all .15s;}
 .cs-btn:hover{background:#ffc04a;transform:scale(1.05);}
@@ -233,15 +233,14 @@ textarea{resize:vertical;min-height:80px;}
 .cs-header{background:#111;padding:.65rem .85rem;border-bottom:1px solid #1e1e1e;display:flex;justify-content:space-between;align-items:center;}
 .cs-title{font-family:'Barlow Condensed',sans-serif;font-size:.85rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#e8e0d4;}
 .cs-close{background:transparent;border:none;color:#555;cursor:pointer;font-size:1rem;line-height:1;padding:0;}
-.cs-messages{flex:1;overflow-y:auto;padding:.75rem;display:flex;flex-direction:column;gap:.5rem;max-height:260px;min-height:120px;}
-.cs-msg{padding:.5rem .7rem;border-radius:3px;font-size:.92rem;line-height:1.5;max-width:85%;}
-.cs-msg.user{background:#1a1a1a;color:#ccc;align-self:flex-end;border:1px solid #2a2a2a;}
-.cs-msg.assistant{background:#1a2a1a;color:#ccc;align-self:flex-start;border:1px solid #1e2e1e;}
-.cs-input-row{display:flex;border-top:1px solid #1e1e1e;background:#111;}
-.cs-input{flex:1;background:transparent;border:none;outline:none;padding:.65rem .75rem;font-family:'Barlow',sans-serif;font-size:.95rem;color:#e8e0d4;}
-.cs-send{background:transparent;border:none;border-left:1px solid #1e1e1e;padding:0 .75rem;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-size:.82rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#f5a623;transition:color .15s;}
-.cs-send:hover{color:#ffc04a;}
-.cs-send:disabled{color:#333;cursor:not-allowed;}
+.cs-form{padding:.75rem .85rem;display:flex;flex-direction:column;gap:.6rem;}
+.cs-field{background:#1a1a1a;border:1px solid #2a2a2a;border-radius:3px;padding:.55rem .7rem;font-family:'Barlow',sans-serif;font-size:.92rem;color:#e8e0d4;outline:none;width:100%;box-sizing:border-box;}
+.cs-field:focus{border-color:#f5a623;}
+.cs-field::placeholder{color:#555;}
+.cs-textarea{resize:vertical;min-height:80px;line-height:1.5;}
+.cs-submit{background:#f5a623;border:none;border-radius:3px;padding:.55rem;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-size:.85rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#0e0e0e;transition:background .15s;}
+.cs-submit:hover{background:#ffc04a;}
+.cs-submit:disabled{background:#333;color:#555;cursor:not-allowed;}
 
 /* MISC */
 .save-indicator{font-family:'Barlow Condensed',sans-serif;font-size:.72rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#4caf82;animation:fadein .3s ease;}
@@ -290,12 +289,12 @@ export default function App() {
   const [goals,        setGoals]        = useState([]);
   const [goalSteps,    setGoalSteps]    = useState({}); // {goalId: [steps]}
 
-  // -- CUSTOMER SERVICE -----------------------------------------------------
+  // -- CONTACT SUPPORT ------------------------------------------------------
   const [csOpen,       setCsOpen]       = useState(false);
-  const [csMessages,   setCsMessages]   = useState([]);
-  const [csInput,      setCsInput]      = useState("");
-  const [csLoading,    setCsLoading]    = useState(false);
-  const csEndRef = useRef(null);
+  const [csSubject,    setCsSubject]    = useState("");
+  const [csBody,       setCsBody]       = useState("");
+  const [csSending,    setCsSending]    = useState(false);
+  const [csSent,       setCsSent]       = useState(false);
 
   // -- STRIPE CHECKOUT ------------------------------------------------------
   const [checkoutLoading, setCheckoutLoading] = useState(false);
@@ -422,7 +421,6 @@ export default function App() {
       await loadCanvas();
       loadOpportunities();
       loadGoals();
-      loadCSHistory();
     })();
   }, [session]);
 
@@ -493,12 +491,6 @@ export default function App() {
     setGoalSteps(stepsMap);
   }
 
-  async function loadCSHistory() {
-    const { data } = await supabase.from('cs_conversations')
-      .select('role,content').eq('user_id', session.user.id)
-      .order('created_at').limit(40);
-    if (data?.length) setCsMessages(data);
-  }
 
   // -- AUTH ACTIONS ---------------------------------------------------------
   const signInWithGoogle = async () => {
@@ -519,7 +511,7 @@ export default function App() {
            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone });
     setSubmitted(false); setCanvas({}); setCanvasScores({});
     setOpps([]); setGoals([]); setGoalSteps({});
-    setCsMessages([]); setTab("input"); setIsPremium(false);
+    setCsSubject(""); setCsBody(""); setCsSent(false); setTab("input"); setIsPremium(false);
   };
 
   // -- SAVE PROFILE ---------------------------------------------------------
@@ -826,41 +818,24 @@ PainPoints:${p.painPoints}`;
     await updateGoalField(goalId, 'sms_enabled', !current);
   };
 
-  // -- CUSTOMER SERVICE ------------------------------------------------------
-  useEffect(() => {
-    csEndRef.current?.scrollIntoView({ behavior:'smooth' });
-  }, [csMessages]);
-
-  const sendCS = async () => {
-    if (!csInput.trim() || csLoading) return;
-    const userMsg = { role:'user', content: csInput.trim() };
-    setCsMessages(prev => [...prev, userMsg]);
-    setCsInput("");
-    setCsLoading(true);
-    await supabase.from('cs_conversations').insert({ ...userMsg, user_id: session.user.id });
+  // -- CONTACT SUPPORT -------------------------------------------------------
+  const sendSupport = async () => {
+    if (!csBody.trim() || csSending) return;
+    setCsSending(true);
     try {
-      const history = [...csMessages, userMsg].map(m => ({ role: m.role, content: m.content }));
-      const data = await callEdge('claude-proxy', {
-        system: `You are the TradeStack customer service assistant. You ONLY answer questions about how to use TradeStack -- the business intelligence app. If asked anything else, say: "I'm not sure about that, but I'm here to help you get the most out of TradeStack. What can I help you with?"
-
-TradeStack has 4 tabs:
-- Input: Enter your business info and financials. Hit "Save & Analyze" to generate your canvas and opportunities.
-- Canvas: Your 9-cell lean canvas. Each cell has a score badge (0-100). Premium users can click a badge to jump to the related opportunity.
-- Opportunities: AI-generated action cards based on your canvas. Premium feature. Click "Make it a Goal" to move a card to your Goals tab.
-- Goals: Track goals moved from Opportunities. Each goal has AI-generated steps, a dollar value estimate, and an SMS daily reminder toggle.
-
-Keep replies short, friendly, and helpful. No emojis.`,
-        user: csInput.trim(),
-        history: history.slice(-10)
-      }, session);
-      const assistantMsg = { role:'assistant', content: data?.text || "I'm not sure about that. What else can I help you with?" };
-      setCsMessages(prev => [...prev, assistantMsg]);
-      await supabase.from('cs_conversations').insert({ ...assistantMsg, user_id: session.user.id });
+      await supabase.from('support_messages').insert({
+        user_id: session.user.id,
+        email: session.user.email,
+        subject: csSubject.trim() || '(no subject)',
+        message: csBody.trim(),
+      });
+      setCsSent(true);
+      setCsSubject("");
+      setCsBody("");
     } catch(e) {
-      const errMsg = { role:'assistant', content:"Sorry, I'm having trouble connecting right now. Try again in a moment." };
-      setCsMessages(prev => [...prev, errMsg]);
+      console.error('Support form error:', e);
     }
-    setCsLoading(false);
+    setCsSending(false);
   };
 
   // -- SCORE BADGE HELPERS ---------------------------------------------------
@@ -1346,35 +1321,42 @@ Keep replies short, friendly, and helpful. No emojis.`,
 
         </div>{/* end .pg */}
 
-        {/* -- CUSTOMER SERVICE BUBBLE ------------------------------------ */}
+        {/* -- CONTACT SUPPORT BUBBLE ------------------------------------- */}
         <div className="cs-bubble">
           {csOpen && (
             <div className="cs-panel">
               <div className="cs-header">
-                <span className="cs-title">TradeStack Support</span>
-                <button className="cs-close" onClick={() => setCsOpen(false)}>close</button>
+                <span className="cs-title">Contact Support</span>
+                <button className="cs-close" onClick={() => { setCsOpen(false); setCsSent(false); }}>close</button>
               </div>
-              <div className="cs-messages">
-                {csMessages.length === 0 && (
-                  <div className="cs-msg assistant">Hi, how can I help you use TradeStack today?</div>
-                )}
-                {csMessages.map((m, i) => (
-                  <div key={i} className={`cs-msg ${m.role}`}>{m.content}</div>
-                ))}
-                {csLoading && <div className="cs-msg assistant" style={{color:'#555'}}>...</div>}
-                <div ref={csEndRef}/>
-              </div>
-              <div className="cs-input-row">
-                <input
-                  className="cs-input"
-                  value={csInput}
-                  onChange={e => setCsInput(e.target.value)}
-                  onKeyDown={e => e.key==='Enter' && sendCS()}
-                  placeholder="Ask a question..."
-                  disabled={csLoading}
-                />
-                <button className="cs-send" onClick={sendCS} disabled={csLoading||!csInput.trim()}>Send</button>
-              </div>
+              {csSent ? (
+                <div className="cs-form" style={{padding:'1.5rem .85rem',textAlign:'center'}}>
+                  <p style={{color:'#4caf82',fontWeight:700,marginBottom:'.5rem'}}>Message sent</p>
+                  <p style={{color:'#888',fontSize:'.85rem'}}>Stephen will get back to you shortly.</p>
+                  <button className="cs-submit" style={{marginTop:'1rem'}} onClick={() => setCsSent(false)}>Send another</button>
+                </div>
+              ) : (
+                <div className="cs-form">
+                  <input
+                    className="cs-field"
+                    value={csSubject}
+                    onChange={e => setCsSubject(e.target.value)}
+                    placeholder="Subject (optional)"
+                    disabled={csSending}
+                  />
+                  <textarea
+                    className="cs-field cs-textarea"
+                    value={csBody}
+                    onChange={e => setCsBody(e.target.value)}
+                    placeholder="How can we help?"
+                    rows={4}
+                    disabled={csSending}
+                  />
+                  <button className="cs-submit" onClick={sendSupport} disabled={csSending||!csBody.trim()}>
+                    {csSending ? 'Sending...' : 'Send Message'}
+                  </button>
+                </div>
+              )}
             </div>
           )}
           <button className="cs-btn" onClick={() => setCsOpen(v => !v)}>
