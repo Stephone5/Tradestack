@@ -568,14 +568,16 @@ export default function App() {
   }, [canvas, session, submitted]);
 
   // -- AUTO-REGEN OPPORTUNITIES (debounced 8s after canvas change) -----------
+  // Runs for ALL users (free + premium). Blur gate controls visibility, not generation.
   useEffect(() => {
-    if (!session || !submitted || !isPremium) return;
+    if (!session || !submitted) return;
     const hasContent = CELLS.some(c => canvas[c.k]);
     if (!hasContent) return;
     const timer = setTimeout(() => { genOpportunities(canvas); }, 8000);
     return () => clearTimeout(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [canvas, session, submitted, isPremium]);
+  }, [canvas, session, submitted]);
+
 
   // -- CONTEXT STRING FOR AI -------------------------------------------------
   const ctx = () => `Business:${p.bizName}
