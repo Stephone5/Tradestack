@@ -579,6 +579,20 @@ export default function App() {
   }, [canvas, session, submitted]);
 
 
+  // -- SAFETY NET: generate opportunities when user visits tab if missing -----
+  // The 8s debounce timer above can be reset by auth events or state changes.
+  // This ensures opportunities generate when a user actually views the tab.
+  useEffect(() => {
+    if (tab !== 'opportunities' && tab !== 'goals') return;
+    if (!session || !submitted) return;
+    if (oppLoading) return;
+    if (opps.length > 0) return;
+    const hasContent = CELLS.some(c => canvas[c.k]);
+    if (!hasContent) return;
+    genOpportunities(canvas);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, session, submitted, oppLoading, opps.length]);
+  
   // -- CONTEXT STRING FOR AI -------------------------------------------------
   const ctx = () => `Business:${p.bizName}
 Trade:${p.trade}
