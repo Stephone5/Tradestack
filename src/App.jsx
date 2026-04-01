@@ -662,9 +662,10 @@ PainPoints:${p.painPoints}`;
   // -- GENERATE OPPORTUNITIES ------------------------------------------------
   const genOpportunities = async (canvasData) => {
     setOppLoading(true);
+    setCanvasScores({}); // Clear stale scores until new opps + scores generate
     try {
       const data = await callEdge('claude-proxy', {
-        system: `You are a revenue and efficiency consultant for small trades businesses. Analyze this lean canvas and generate opportunity cards. Return ONLY valid JSON array: [{"canvas_cell":"problem","title":"string","insight":"string (2-3 sentences, specific and actionable)","impact_label":"High"|"Medium"|"Low"}]. Generate at least 2 cards per relevant canvas cell. Be specific to the trade, numbers, and pain points. Focus on the 20% actions that drive 80% of results.`,
+        system: `You are a revenue and efficiency consultant for small trades businesses. Analyze this lean canvas and generate exactly 2 opportunity cards for EACH of these 9 canvas cells: problem, solution, uvp, unfair, segments, metrics, channels, revenue, cost. That means exactly 18 cards total. Return ONLY valid JSON array: [{"canvas_cell":"problem","title":"string","insight":"string (2-3 sentences, specific and actionable)","impact_label":"High"|"Medium"|"Low"}]. Be specific to the trade, numbers, and pain points. Focus on the 20% actions that drive 80% of results. You MUST include all 9 canvas_cell values.`,
         user: `Generate opportunities for this business:\n${ctx()}\n\nLean Canvas:\n${JSON.stringify(canvasData)}`
       }, session);
       const parsed = jp(data?.text || '[]');
@@ -1219,12 +1220,14 @@ PainPoints:${p.painPoints}`;
                                 ? <div className="opp-migrated">This became a goal - check the Goals tab</div>
                                 : <>
                                     <div className="opp-card-top">
-                                      <div className="opp-title">{opp.title}
-                                      <button onClick={() => regenerateSingleOpp(opp)} disabled={regeneratingOpp === opp.id} style={{marginLeft:'auto',background:'none',border:'1px solid #555',color:'#888',padding:'.2rem .5rem',borderRadius:'4px',fontSize:'.7rem',cursor:'pointer',whiteSpace:'nowrap'}}>{regeneratingOpp === opp.id ? 'Refreshing...' : 'Regenerate'}</button></div>
+                                      <div className="opp-title">{opp.title}</div>
                                       <div className={`opp-impact imp-${opp.impact_label?.[0]||'M'}`}>{opp.impact_label}</div>
                                     </div>
                                     <div className="opp-insight">{opp.insight}</div>
-                                    <button className="opp-cta" onClick={() => migrateToGoal(opp)} disabled={!!migratedMsg[opp.id]}>Make it a Goal</button>
+                                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:'.5rem'}}>
+                                      <button className="opp-cta" onClick={() => migrateToGoal(opp)} disabled={!!migratedMsg[opp.id]}>Make it a Goal</button>
+                                      <button onClick={() => regenerateSingleOpp(opp)} disabled={regeneratingOpp === opp.id} style={{background:'none',border:'1px solid #555',color:'#888',padding:'.25rem .6rem',borderRadius:'4px',fontSize:'.72rem',cursor:'pointer'}}>{regeneratingOpp === opp.id ? 'Refreshing...' : 'Regenerate'}</button>
+                                    </div>
                                   </>
                               }
                             </div>
