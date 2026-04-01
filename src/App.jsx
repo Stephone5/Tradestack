@@ -274,7 +274,8 @@ export default function App() {
   const profileLoaded  = useRef(false);
   const canvasEdited   = useRef(false);  // true only when user manually edits a canvas cell
   const justMigrated   = useRef(null);   // canvas_cell key of the opp just migrated
-  const [regeneratingOpp, setRegeneratingOpp] = useState(null); // opp id being regenerated
+  const [regeneratingOpp, setRegeneratingOpp] = useState(null);
+  const [enrichingGoals, setEnrichingGoals] = useState(new Set()); // goal IDs being enriched by AI // opp id being regenerated
  
   // -- CANVAS --------------------------------------------------------------
   const [canvas,       setCanvas]       = useState({});
@@ -770,10 +771,18 @@ PainPoints:${p.painPoints}`;
       setGoals(prev => [...prev, goal]);
       // Remove opp from local state after brief delay
       setTimeout(() => {
-        setOpps(prev => prev.filter(o => o.id !== opp.id));
+        const cellKey = opp.canvas_cell;
+        setOpps(prev => {
+          const updated = prev.filter(o => o.id !== opp.id);
+          const cellRemaining = updated.filter(o => o.canvas_cell === cellKey && !o.migrated);
+          if (cellRemaining.length < 2) {
+            refillCellOpps(cellKey, canvas);
+          }
+          return updated;
+        });
         setMigratedMsg(prev => { const n = {...prev}; delete n[opp.id]; return n; });
       }, 1500);
-      // Fire AI enrichment in background - user doesn't wait for this
+      setEnrichingGoals(prev => new Set([...prev, goal.id]));
       (async () => {
         try {
           const valData = await callEdge('claude-proxy', {
@@ -802,6 +811,7 @@ PainPoints:${p.painPoints}`;
             setGoalSteps(prev => ({ ...prev, [goal.id]: insertedSteps || [] }));
           }
         } catch(e) { console.error('Steps error:', e); }
+        setEnrichingGoals(prev => { const n = new Set(prev); n.delete(goal.id); return n; });
       })();
     }
   };
@@ -1209,14 +1219,12 @@ PainPoints:${p.painPoints}`;
                                 ? <div className="opp-migrated">This became a goal - check the Goals tab</div>
                                 : <>
                                     <div className="opp-card-top">
-                                      <div className="opp-title">{opp.title}</div>
+                                      <div className="opp-title">{opp.title}
+                                      <button onClick={() => regenerateSingleOpp(opp)} disabled={regeneratingOpp === opp.id} style={{marginLeft:'auto',background:'none',border:'1px solid #555',color:'#888',padding:'.2rem .5rem',borderRadius:'4px',fontSize:'.7rem',cursor:'pointer',whiteSpace:'nowrap'}}>{regeneratingOpp === opp.id ? 'Refreshing...' : 'Regenerate'}</button></div>
                                       <div className={`opp-impact imp-${opp.impact_label?.[0]||'M'}`}>{opp.impact_label}</div>
                                     </div>
                                     <div className="opp-insight">{opp.insight}</div>
-                                    <div style={{display:'flex',gap:'.5rem',marginTop:'.5rem'}}>
-                                      <button className="opp-cta" onClick={() => migrateToGoal(opp)} disabled={!!migratedMsg[opp.id]}>Make it a Goal</button>
-                                      <button className="opp-regen" onClick={() => regenerateSingleOpp(opp)} disabled={regeneratingOpp === opp.id} style={{background:'none',border:'1px solid #555',color:'#e8e0d4',padding:'.35rem .7rem',borderRadius:'6px',fontSize:'.8rem',cursor:'pointer'}}>{regeneratingOpp === opp.id ? 'Refreshing...' : 'Regenerate'}</button>
-                                    </div>
+                                    <button className="opp-cta" onClick={() => migrateToGoal(opp)} disabled={!!migratedMsg[opp.id]}>Make it a Goal</button>
                                   </>
                               }
                             </div>
@@ -1318,7 +1326,8 @@ PainPoints:${p.painPoints}`;
                               : goal.status==='in_progress' ? 'gs-ip'
                               : 'gs-ns';
                             return (
-                              <div key={goal.id} className={`goal-card ${goal.status==='completed'?'completed':''}`}>
+                              <div key={goal.id} className={`goal-card ${goal.status==='completed'?'completed':''}`} style={{position:'relative'}}>
+                    {enrichingGoals.has(goal.id) && <div style={{position:'absolute',inset:0,background:'rgba(20,18,15,0.85)',display:'flex',alignItems:'center',justifyContent:'center',borderRadius:'12px',zIndex:2}}><div style={{textAlign:'center',color:'#e8e0d4'}}><div style={{color:'#f5a623',fontSize:'1rem',marginBottom:'.3rem'}}>Building your goal</div><div style={{fontSize:'.8rem',color:'#888'}}>Wait ~20 seconds for steps and value estimate.</div></div></div>}
                                 <div className="goal-top">
                                   <input
                                     className={`goal-title-input ${goal.status==='completed'?'completed':''}`}
