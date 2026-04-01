@@ -272,6 +272,9 @@ export default function App() {
   const [autoSaved,    setAutoSaved]    = useState(false);
   const [saveError,    setSaveError]    = useState(null);
   const profileLoaded  = useRef(false);
+  const canvasEdited   = useRef(false);  // true only when user manually edits a canvas cell
+  const justMigrated   = useRef(null);   // canvas_cell key of the opp just migrated
+  const [regeneratingOpp, setRegeneratingOpp] = useState(null); // opp id being regenerated
  
   // -- CANVAS --------------------------------------------------------------
   const [canvas,       setCanvas]       = useState({});
@@ -557,31 +560,38 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [session, p, saveProfile]);
  
-  // -- AUTO-REGEN OPPORTUNITIES + SCORES (debounced 8s after canvas change) --
-  // Runs for ALL users (free + premium). Blur gate controls visibility, not generation.
-  // Opportunities generate first, then scores are derived from them.
+  // -- AUTO-REGEN OPPORTUNITIES + SCORES (debounced 8s after canvas EDIT) --------
+  // ONLY fires when user manually edits a canvas cell, NOT on page load or tab switch.
   useEffect(() => {
     if (!session || !submitted) return;
+    if (!canvasEdited.current) return; // Skip unless user actually edited canvas
     const hasContent = CELLS.some(c => canvas[c.k]);
     if (!hasContent) return;
-    const timer = setTimeout(() => { genOpportunities(canvas); }, 8000);
-    return () => clearTimeout(timer);
+    const timer = setTimeout(() => {
+      canvasEdited.current = false;
+      genOpportunities(canvas);
+    }, 8000);
+    return () => {
+      clearTimeout(timer);
+      // Do NOT reset canvasEdited here - let it persist so the next effect run picks it up
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canvas, session, submitted]);
- 
-  // -- SAFETY NET: generate opportunities when user visits tab if missing -----
-  // The 8s debounce timer above can be reset by auth events or state changes.
-  // This ensures opportunities generate when a user actually views the tab.
+
+  // -- SAFETY NET: generate opportunities for FIRST-TIME users only -------------
+  // Only fires once ever: user has zero opps, zero goals, and has canvas content.
+  // After first generation, this never fires again.
   useEffect(() => {
     if (tab !== 'opportunities' && tab !== 'goals') return;
     if (!session || !submitted) return;
     if (oppLoading) return;
     if (opps.length > 0) return;
+    if (goals.length > 0) return; // User migrated before - not a new user
     const hasContent = CELLS.some(c => canvas[c.k]);
     if (!hasContent) return;
     genOpportunities(canvas);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab, session, submitted, oppLoading, opps.length]);
+  }, [tab, session, submitted, oppLoading, opps.length, goals.length]);
  
  
   // -- CONTEXT STRING FOR AI -------------------------------------------------
@@ -728,6 +738,7 @@ PainPoints:${p.painPoints}`;
  
   // -- SAVE CANVAS CELL EDIT -------------------------------------------------
   const saveCanvasCell = useCallback(async (key, value) => {
+    canvasEdited.current = true;
     setCanvas(prev => ({ ...prev, [key]: value }));
     await supabase.from('canvas_cells').upsert({
       user_id:    session.user.id,
@@ -737,70 +748,92 @@ PainPoints:${p.painPoints}`;
     }, { onConflict: 'user_id,cell_key' });
   }, [session]);
  
-  // -- MIGRATE OPPORTUNITY -> GOAL --------------------------------------------
+  // -- MIGRATE OPPORTUNITY -> GOAL (non-blocking) --------------------------------
   const migrateToGoal = async (opp) => {
-    justMigrated.current = opp.canvas_cell; // Track which cell lost an opp
+    if (migratedMsg[opp.id]) return; // Guard against double-click
     setMigratedMsg(prev => ({ ...prev, [opp.id]: true }));
-    // Mark migrated in DB
+    // Mark migrated in DB immediately
     await supabase.from('opportunities')
       .update({ migrated: true, migrated_at: new Date().toISOString() })
       .eq('id', opp.id);
-    // Estimate dollar value with AI
-    let estValue = 0;
-    try {
-      const data = await callEdge('claude-proxy', {
-        system: `You are a financial analyst for small trades businesses. Estimate the annual dollar value of implementing this opportunity. Return ONLY valid JSON: {"estimated_annual_value": 5000, "reasoning": "one sentence"}`,
-        user: `Opportunity: ${opp.title}\nInsight: ${opp.insight}\n\nBusiness context:\n${ctx()}`
-      }, session);
-      const parsed = jp(data?.text || '{}');
-      estValue = parsed?.estimated_annual_value || 0;
-    } catch(e) { console.error('Value estimate error:', e); }
-    // Create goal
+    // Create goal right away with $0 placeholder - user sees instant feedback
     const { data: goal } = await supabase.from('goals').insert({
       user_id:          session.user.id,
       opportunity_id:   opp.id,
       title:            opp.title,
-      estimated_value:  estValue,
+      estimated_value:  0,
       status:           'not_started',
       sms_enabled:      false,
       sort_order:       goals.length,
     }).select().single();
-    if (!goal) return;
-    // Generate steps with AI
-    try {
-      const data = await callEdge('claude-proxy', {
-        system: `You are an execution coach for small business owners. Generate 3-6 specific, actionable steps to achieve this goal. Return ONLY valid JSON array: [{"step_text":"string"}]`,
-        user: `Goal: ${opp.title}\nContext: ${opp.insight}\n\nBusiness:\n${ctx()}`
-      }, session);
-      const steps = jp(data?.text || '[]');
-      if (Array.isArray(steps)) {
-        const rows = steps.map((s, i) => ({
-          goal_id:       goal.id,
-          user_id:       session.user.id,
-          step_text:     s.step_text,
-          status:        'not_started',
-          sort_order:    i,
-        }));
-        const { data: insertedSteps } = await supabase.from('goal_steps')
-          .insert(rows).select();
-        setGoalSteps(prev => ({ ...prev, [goal.id]: insertedSteps || [] }));
-      }
-    } catch(e) { console.error('Steps error:', e); }
-    setGoals(prev => [...prev, goal]);
-    // Remove from local opps after delay
-    setTimeout(() => {
-      setOpps(prev => {
-        const updated = prev.filter(o => o.id !== opp.id);
-        const cellRemaining = updated.filter(o => o.canvas_cell === opp.canvas_cell && !o.migrated);
-        if (cellRemaining.length < 2) {
-          refillCellOpps(opp.canvas_cell, canvas);
-        }
-        return updated;
-      });
-      setMigratedMsg(prev => { const n = {...prev}; delete n[opp.id]; return n; });
-    }, 2000);
+    if (goal) {
+      setGoals(prev => [...prev, goal]);
+      // Remove opp from local state after brief delay
+      setTimeout(() => {
+        setOpps(prev => prev.filter(o => o.id !== opp.id));
+        setMigratedMsg(prev => { const n = {...prev}; delete n[opp.id]; return n; });
+      }, 1500);
+      // Fire AI enrichment in background - user doesn't wait for this
+      (async () => {
+        try {
+          const valData = await callEdge('claude-proxy', {
+            system: `You are a financial analyst for small trades businesses. Estimate the annual dollar value of implementing this opportunity. Return ONLY valid JSON: {"estimated_annual_value": 5000, "reasoning": "one sentence"}`,
+            user: `Opportunity: ${opp.title}\nInsight: ${opp.insight}\n\nBusiness context:\n${ctx()}`
+          }, session);
+          const parsed = jp(valData?.text || '{}');
+          const estValue = parsed?.estimated_annual_value || 0;
+          if (estValue > 0) {
+            await supabase.from('goals').update({ estimated_value: estValue }).eq('id', goal.id);
+            setGoals(prev => prev.map(g => g.id === goal.id ? {...g, estimated_value: estValue} : g));
+          }
+        } catch(e) { console.error('Value estimate error:', e); }
+        try {
+          const stepsData = await callEdge('claude-proxy', {
+            system: `You are an execution coach for small business owners. Generate 3-6 specific, actionable steps to achieve this goal. Return ONLY valid JSON array: [{"step_text":"string"}]`,
+            user: `Goal: ${opp.title}\nContext: ${opp.insight}\n\nBusiness:\n${ctx()}`
+          }, session);
+          const steps = jp(stepsData?.text || '[]');
+          if (Array.isArray(steps) && steps.length > 0) {
+            const rows = steps.map((s, i) => ({
+              goal_id: goal.id, user_id: session.user.id,
+              step_text: s.step_text, status: 'not_started', sort_order: i,
+            }));
+            const { data: insertedSteps } = await supabase.from('goal_steps').insert(rows).select();
+            setGoalSteps(prev => ({ ...prev, [goal.id]: insertedSteps || [] }));
+          }
+        } catch(e) { console.error('Steps error:', e); }
+      })();
+    }
   };
- 
+
+  // -- REGENERATE SINGLE OPPORTUNITY -------------------------------------------
+  const regenerateSingleOpp = async (opp) => {
+    if (regeneratingOpp) return; // One at a time
+    setRegeneratingOpp(opp.id);
+    try {
+      // Delete just this one opp
+      await supabase.from('opportunities').delete().eq('id', opp.id);
+      // Generate one replacement for the same cell
+      const existingTitles = opps.filter(o => o.canvas_cell === opp.canvas_cell && o.id !== opp.id).map(o => o.title);
+      const data = await callEdge('claude-proxy', {
+        system: `You are a revenue and efficiency consultant for small trades businesses. Generate exactly 1 new opportunity card for the "${opp.canvas_cell}" canvas cell. Return ONLY valid JSON array: [{"canvas_cell":"${opp.canvas_cell}","title":"string","insight":"string (2-3 sentences, specific and actionable)","impact_label":"High"|"Medium"|"Low"}]. Do NOT duplicate these existing opportunities: ${JSON.stringify(existingTitles)}. Be specific to the trade.`,
+        user: `Generate 1 replacement opportunity for the "${opp.canvas_cell}" cell:\n${ctx()}\n\nCanvas cell content: ${canvas[opp.canvas_cell] || ''}\n\nFull canvas:\n${JSON.stringify(canvas)}`
+      }, session);
+      const parsed = jp(data?.text || '[]');
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        const row = {
+          user_id: session.user.id, canvas_cell: opp.canvas_cell,
+          title: parsed[0].title, insight: parsed[0].insight,
+          impact_label: parsed[0].impact_label || 'Medium',
+          migrated: false, sort_order: opp.sort_order,
+        };
+        const { data: inserted } = await supabase.from('opportunities').insert(row).select().single();
+        if (inserted) setOpps(prev => prev.map(o => o.id === opp.id ? inserted : o));
+      }
+    } catch(e) { console.error('Regenerate error:', e); }
+    setRegeneratingOpp(null);
+  };
+
   // -- UPDATE GOAL STEP STATUS -----------------------------------------------
   const cycleStepStatus = async (goalId, stepId, currentStatus) => {
     const next = currentStatus === 'not_started' ? 'in_progress'
@@ -1084,14 +1117,14 @@ PainPoints:${p.painPoints}`;
                 onClick={submit}
                 disabled={!p.bizName || !p.trade || !p.annualRev || oppLoading}
               >
-                {oppLoading ? 'Generating Insights...' : 'Save & View Canvas'}
+                {oppLoading ? 'Building your strategy. Wait ~45 seconds.' : 'Save & View Canvas'}
               </button>
             </div>
           </>}
  
           {/* -- CANVAS TAB ----------------------------------------------- */}
           {tab==="canvas" && <>
-            <div className="stitle">Lean Canvas - {p.bizName}{oppLoading && <span className="save-indicator" style={{marginLeft:'.5rem',fontSize:'.72rem',color:'#f5a623'}}>Analyzing opportunities...</span>}{!oppLoading && scoreLoading && <span className="save-indicator" style={{marginLeft:'.5rem',fontSize:'.72rem',color:'#888'}}>Scoring canvas...</span>}</div>
+            <div className="stitle">Lean Canvas - {p.bizName}{oppLoading && <span className="save-indicator" style={{marginLeft:'.5rem',fontSize:'.72rem',color:'#f5a623'}}>Analyzing opportunities. Wait ~30 seconds.</span>}{!oppLoading && scoreLoading && <span className="save-indicator" style={{marginLeft:'.5rem',fontSize:'.72rem',color:'#888'}}>Scoring your canvas. Wait ~15 seconds.</span>}</div>
             <div className="canvas">
               {CELLS.map(c => (
                 <div key={c.k} className="cc">
@@ -1160,7 +1193,7 @@ PainPoints:${p.painPoints}`;
                   </div>
                 </div>
               : oppLoading
-                ? <div className="loader"><div className="lbar"/><div className="llbl">Generating opportunities...</div></div>
+                ? <div className="loader"><div className="lbar"/><div className="llbl">Your Chief Strategy Officer is writing up his report. Wait ~30 seconds.</div></div>
                 : Object.keys(groupedOpps).length === 0
                   ? <div className="empty">
                       <p>No opportunities yet.</p>
@@ -1180,7 +1213,10 @@ PainPoints:${p.painPoints}`;
                                       <div className={`opp-impact imp-${opp.impact_label?.[0]||'M'}`}>{opp.impact_label}</div>
                                     </div>
                                     <div className="opp-insight">{opp.insight}</div>
-                                    <button className="opp-cta" onClick={() => migrateToGoal(opp)}>Make it a Goal</button>
+                                    <div style={{display:'flex',gap:'.5rem',marginTop:'.5rem'}}>
+                                      <button className="opp-cta" onClick={() => migrateToGoal(opp)} disabled={!!migratedMsg[opp.id]}>Make it a Goal</button>
+                                      <button className="opp-regen" onClick={() => regenerateSingleOpp(opp)} disabled={regeneratingOpp === opp.id} style={{background:'none',border:'1px solid #555',color:'#e8e0d4',padding:'.35rem .7rem',borderRadius:'6px',fontSize:'.8rem',cursor:'pointer'}}>{regeneratingOpp === opp.id ? 'Refreshing...' : 'Regenerate'}</button>
+                                    </div>
                                   </>
                               }
                             </div>
