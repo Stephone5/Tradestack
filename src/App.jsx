@@ -958,8 +958,7 @@ PainPoints:${p.painPoints}`;
  
   // -- GROUPED OPPORTUNITIES -------------------------------------------------
   const groupedOpps = CELLS.reduce((acc, c) => {
-    const cards = opps.filter(o => o.canvas_cell === c.k);
-    if (cards.length) acc[c.k] = { label: c.l, cards };
+    acc[c.k] = { label: c.l, cards: opps.filter(o => o.canvas_cell === c.k) };
     return acc;
   }, {});
  
@@ -1126,11 +1125,12 @@ PainPoints:${p.painPoints}`;
               <button
                 className="btn bp"
                 onClick={submit}
-                disabled={!p.bizName || !p.trade || !p.annualRev || oppLoading}
+                disabled={!p.bizName || !p.trade || !p.annualRev || !CELLS.every(c => canvas[c.k]?.trim()) || oppLoading}
               >
                 {oppLoading ? 'Building your strategy. Wait ~45 seconds.' : 'Save & View Canvas'}
               </button>
             </div>
+            {!CELLS.every(c => canvas[c.k]?.trim()) && <p style={{fontSize:'.78rem',color:'#888',marginTop:'.5rem',textAlign:'right'}}>Fill in all 9 Business Model fields above to continue.</p>}
           </>}
  
           {/* -- CANVAS TAB ----------------------------------------------- */}
@@ -1205,7 +1205,7 @@ PainPoints:${p.painPoints}`;
                 </div>
               : oppLoading
                 ? <div className="loader"><div className="lbar"/><div className="llbl">Your Chief Strategy Officer is writing up his report. Wait ~30 seconds.</div></div>
-                : Object.keys(groupedOpps).length === 0
+                : opps.length === 0
                   ? <div className="empty">
                       <p>No opportunities yet.</p>
                       <p style={{marginTop:'.5rem'}}>Go to the Input tab and hit "Save & View Canvas" to generate your first set.</p>
