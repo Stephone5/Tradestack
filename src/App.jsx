@@ -662,10 +662,10 @@ PainPoints:${p.painPoints}`;
   // -- GENERATE OPPORTUNITIES ------------------------------------------------
   const genOpportunities = async (canvasData) => {
     setOppLoading(true);
-    setCanvasScores({}); // Clear stale scores until new opps + scores generate
+    setCanvasScores({});
     try {
       const data = await callEdge('claude-proxy', {
-        system: `You are a revenue and efficiency consultant for small trades businesses. Analyze this lean canvas and generate exactly 2 opportunity cards for EACH of these 9 canvas cells: problem, solution, uvp, unfair, segments, metrics, channels, revenue, cost. That means exactly 18 cards total. Return ONLY valid JSON array: [{"canvas_cell":"problem","title":"string","insight":"string (2-3 sentences, specific and actionable)","impact_label":"High"|"Medium"|"Low"}]. Be specific to the trade, numbers, and pain points. Focus on the 20% actions that drive 80% of results. You MUST include all 9 canvas_cell values.`,
+        system: `You are a revenue and efficiency consultant for small trades businesses. For EACH of these 9 canvas cells — problem, solution, uvp, unfair, segments, metrics, channels, revenue, cost — generate exactly 2 opportunity cards. Every card must answer one question: how can this owner make more money or stop wasting money in this area? Ground every card in the specific canvas content AND the financial data provided. Reference their actual numbers (revenue, costs, margins) where possible. Return ONLY valid JSON array: [{"canvas_cell":"problem","title":"string","insight":"string (2-3 sentences, specific, actionable, tied to their actual numbers and business)","impact_label":"High"|"Medium"|"Low"}]. You MUST return exactly 2 cards for each of the 9 canvas_cell values. No exceptions.`,
         user: `Generate opportunities for this business:\n${ctx()}\n\nLean Canvas:\n${JSON.stringify(canvasData)}`
       }, session);
       const parsed = jp(data?.text || '[]');
@@ -673,7 +673,7 @@ PainPoints:${p.painPoints}`;
       // Delete old non-migrated opportunities first
       await supabase.from('opportunities')
         .delete().eq('user_id', session.user.id).eq('migrated', false);
-      // Insert new ones
+      // Insert what came back from main call
       const rows = parsed.map((opp, i) => ({
         user_id:      session.user.id,
         canvas_cell:  opp.canvas_cell,
@@ -685,13 +685,48 @@ PainPoints:${p.painPoints}`;
       }));
       const { data: inserted } = await supabase.from('opportunities')
         .insert(rows).select();
-      setOpps(inserted || []);
-      // Chain: generate scores based on opportunities + canvas data
-      genScores(canvasData, parsed);
+      let allOpps = inserted || [];
+      setOpps(allOpps);
+      // Check which cells have fewer than 2 cards and fill them individually
+      const cellCounts = {};
+      CELLS.forEach(c => { cellCounts[c.k] = 0; });
+      allOpps.forEach(o => { if (cellCounts[o.canvas_cell] !== undefined) cellCounts[o.canvas_cell]++; });
+      const missingCells = CELLS.filter(c => cellCounts[c.k] < 2);
+      if (missingCells.length > 0) {
+        const fillPromises = missingCells.map(async (c) => {
+          const have = allOpps.filter(o => o.canvas_cell === c.k);
+          const needed = 2 - have.length;
+          const existingTitles = have.map(o => o.title);
+          try {
+            const fillData = await callEdge('claude-proxy', {
+              system: `Generate exactly ${needed} opportunity card(s) for the "${c.k}" canvas area showing how this business can make more money or stop wasting money there. Return ONLY valid JSON array: [{"canvas_cell":"${c.k}","title":"string","insight":"string (2-3 sentences, specific, actionable)","impact_label":"High"|"Medium"|"Low"}]. Do not duplicate: ${JSON.stringify(existingTitles)}`,
+              user: `${ctx()}\n\nCanvas cell "${c.k}": ${canvasData[c.k] || ''}`
+            }, session);
+            const fp = jp(fillData?.text || '[]');
+            if (!Array.isArray(fp) || fp.length === 0) return [];
+            const fillRows = fp.slice(0, needed).map((opp, i) => ({
+              user_id:      session.user.id,
+              canvas_cell:  c.k,
+              title:        opp.title,
+              insight:      opp.insight,
+              impact_label: opp.impact_label || 'Medium',
+              migrated:     false,
+              sort_order:   allOpps.length + i,
+            }));
+            const { data: fi } = await supabase.from('opportunities').insert(fillRows).select();
+            return fi || [];
+          } catch(e) { return []; }
+        });
+        const fillResults = await Promise.all(fillPromises);
+        fillResults.forEach(r => { allOpps = [...allOpps, ...r]; });
+        setOpps(allOpps);
+      }
+      // Chain: generate scores
+      genScores(canvasData, allOpps);
     } catch(e) { console.error('Opp error:', e); }
     setOppLoading(false);
   };
- 
+
   // -- REFILL OPPORTUNITIES FOR A SINGLE CELL (after migration) ---------------
   // Generates just enough (max 2) new opps to bring a cell back to 2.
   const refillCellOpps = async (cellKey, canvasData) => {
