@@ -1,13 +1,13 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from './supabaseClient';
 import LandingPage from './components/LandingPage';
-
+ 
 // -- HELPERS ----------------------------------------------------------------
 function jp(text) {
   try { return JSON.parse(text.replace(/```json\n?|```\n?/g,"").trim()); }
   catch { return null; }
 }
-
+ 
 async function callEdge(fn, body, session) {
   const res = await fetch(
     `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/${fn}`,
@@ -26,7 +26,7 @@ async function callEdge(fn, body, session) {
   if (!res.ok) throw new Error(json.error || `Edge function error (${res.status})`);
   return json;
 }
-
+ 
 // -- CANVAS CELL DEFINITIONS ------------------------------------------------
 const CELLS = [
   { k:"problem",   l:"Problem" },
@@ -39,7 +39,7 @@ const CELLS = [
   { k:"revenue",   l:"Revenue Streams" },
   { k:"cost",      l:"Cost Structure" },
 ];
-
+ 
 // -- STYLES -----------------------------------------------------------------
 const CSS = `
 @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@300;400;500&display=swap');
@@ -49,7 +49,7 @@ body{background:#0e0e0e;}
 *{scrollbar-width:none;-ms-overflow-style:none;}
 *::-webkit-scrollbar{display:none;}
 .app{min-height:100vh;background:#0e0e0e;color:#e8e0d4;font-family:'Barlow',sans-serif;font-weight:300;}
-
+ 
 /* HEADER */
 .hdr{background:#141414;border-bottom:2px solid #f5a623;padding:0 1rem;display:flex;align-items:center;justify-content:space-between;height:52px;position:sticky;top:0;z-index:100;}
 .hdr-tagline{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:clamp(.6rem,2.5vw,1.2rem);letter-spacing:.06em;text-transform:uppercase;color:#e8e0d4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right;}
@@ -59,7 +59,7 @@ body{background:#0e0e0e;}
 .biz-tag{font-family:'Barlow Condensed',sans-serif;font-size:.8rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:#666;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .hdr-right{display:flex;align-items:center;gap:.5rem;}
 .premium-badge{font-family:'Barlow Condensed',sans-serif;font-size:.72rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;background:#f5a623;color:#0e0e0e;padding:.18rem .5rem;border-radius:2px;}
-
+ 
 /* TABS */
 .tabs{display:flex;background:#111;border-bottom:1px solid #222;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
 .tabs::-webkit-scrollbar{display:none;}
@@ -68,22 +68,22 @@ body{background:#0e0e0e;}
 .tab.on{color:#f5a623;border-bottom-color:#f5a623;}
 .tab:disabled{opacity:.3;cursor:not-allowed;}
 .tab-lock{font-size:.65rem;margin-left:.25rem;opacity:.5;}
-
+ 
 /* PAGE */
 .pg{padding:1rem;padding-bottom:5rem;}
 @media(min-width:768px){.pg{padding:1.5rem 2rem;padding-bottom:5rem;}}
-
+ 
 /* GRID */
 .g2{display:grid;grid-template-columns:1fr;gap:.9rem;}
 .g3{display:grid;grid-template-columns:1fr;gap:.75rem;}
 .full{grid-column:1/-1;}
 @media(min-width:540px){.g2{grid-template-columns:1fr 1fr;gap:1.1rem;}.g3{grid-template-columns:repeat(3,1fr);}}
-
+ 
 /* SECTION TITLE */
 .stitle{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:1.15rem;letter-spacing:.1em;text-transform:uppercase;color:#e8e0d4;margin-bottom:.9rem;display:flex;align-items:center;gap:.6rem;}
 .stitle::after{content:'';flex:1;height:1px;background:#222;}
 .divider{height:1px;background:#1e1e1e;margin:1.1rem 0;}
-
+ 
 /* FORM */
 .fg{display:flex;flex-direction:column;gap:.3rem;}
 label{font-family:'Barlow Condensed',sans-serif;font-size:.78rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#888;}
@@ -99,7 +99,7 @@ textarea{resize:vertical;min-height:80px;}
 @media(min-width:540px){.bp{width:auto;}}
 .form-end{display:flex;justify-content:stretch;margin-top:1.1rem;}
 @media(min-width:540px){.form-end{justify-content:flex-end;}}
-
+ 
 /* CANVAS */
 .canvas{display:grid;grid-template-columns:1fr;gap:2px;background:#222;border:1px solid #222;}
 @media(min-width:560px){.canvas{grid-template-columns:repeat(3,1fr);}}
@@ -110,25 +110,25 @@ textarea{resize:vertical;min-height:80px;}
 .cc-val{font-size:.95rem;line-height:1.55;color:#ccc;white-space:pre-wrap;flex:1;outline:none;background:transparent;border:none;border-bottom:1px solid transparent;width:100%;resize:none;font-family:'Barlow',sans-serif;font-weight:300;transition:border-color .15s;min-height:60px;}
 .cc-val:focus{border-bottom-color:#f5a623;}
 .cc-preview{font-family:'Barlow Condensed',sans-serif;font-size:.68rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:#555;margin-bottom:.15rem;}
-
+ 
 /* SCORE BADGE */
 .score-badge{font-family:'Barlow Condensed',sans-serif;font-size:.78rem;font-weight:700;letter-spacing:.06em;padding:.15rem .38rem;border-radius:2px;cursor:pointer;white-space:nowrap;flex-shrink:0;border:none;transition:all .15s;}
 .score-hi{background:#1a3a2a;color:#4caf82;}
 .score-md{background:#3a2f1a;color:#f5a623;}
 .score-lo{background:#3a1a1a;color:#e05252;}
 .score-none{background:#222;color:#555;}
-
+ 
 /* SCORE TOOLTIP */
 .score-tip{position:fixed;background:#1a1a1a;border:1px solid #333;padding:.65rem .85rem;border-radius:3px;font-size:.88rem;line-height:1.5;color:#ccc;max-width:240px;z-index:200;pointer-events:none;}
 .score-tip strong{color:#f5a623;font-family:'Barlow Condensed',sans-serif;font-size:.75rem;letter-spacing:.1em;text-transform:uppercase;display:block;margin-bottom:.2rem;}
-
+ 
 /* FIN CARDS */
 .fc{background:#141414;border:1px solid #222;padding:.9rem;border-radius:3px;}
 .fc-lbl{font-family:'Barlow Condensed',sans-serif;font-size:.75rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#666;margin-bottom:.25rem;}
 .fc-val{font-family:'Barlow Condensed',sans-serif;font-size:1.8rem;font-weight:700;line-height:1;}
 .pos{color:#4caf82;}.neg{color:#e05252;}.neu{color:#e8e0d4;}
 .fc-sub{font-size:.8rem;color:#555;margin-top:.2rem;}
-
+ 
 /* LEGAL MODAL */
 .legal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:500;display:flex;align-items:center;justify-content:center;padding:1rem;}
 .legal-modal{background:#141414;border:1px solid #2a2a2a;border-top:3px solid #f5a623;border-radius:3px;max-width:560px;width:100%;max-height:88vh;display:flex;flex-direction:column;}
@@ -139,14 +139,14 @@ textarea{resize:vertical;min-height:80px;}
 .legal-modal-body h3:first-child{margin-top:0;}
 .legal-modal-body p{font-size:.88rem;color:#666;line-height:1.65;}
 .legal-modal-ft{padding:.75rem 1.5rem 1.1rem;border-top:1px solid #1e1e1e;display:flex;flex-direction:column;gap:.5rem;flex-shrink:0;}
-
+ 
 /* AI DISCLAIMER BANNER */
 .ai-disclaimer{text-align:center;padding:.4rem 1rem;background:#111;border-bottom:1px solid #1a1a1a;font-family:'Barlow Condensed',sans-serif;font-size:.62rem;font-weight:600;letter-spacing:.11em;text-transform:uppercase;color:#555;}
-
+ 
 /* LEGAL FOOTER LINK */
 .legal-pg-link{display:block;text-align:center;padding:2.5rem 0 .25rem;font-family:'Barlow Condensed',sans-serif;font-size:.62rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:#444;background:none;border:none;cursor:pointer;width:100%;}
 .legal-pg-link:hover{color:#888;}
-
+ 
 /* LOADING */
 .loader{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:3rem 1rem;gap:.65rem;color:#555;}
 .lbar{width:140px;height:2px;background:#222;position:relative;overflow:hidden;}
@@ -155,7 +155,7 @@ textarea{resize:vertical;min-height:80px;}
 .llbl{font-family:'Barlow Condensed',sans-serif;font-size:.78rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;}
 .empty{text-align:center;padding:2.5rem 1rem;color:#444;font-size:1rem;line-height:1.6;}
 .regen{display:flex;justify-content:flex-end;margin-top:.65rem;}
-
+ 
 /* OPPORTUNITY CARDS */
 .opp-section{margin-bottom:1.5rem;}
 .opp-section-title{font-family:'Barlow Condensed',sans-serif;font-size:.78rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#555;margin-bottom:.5rem;}
@@ -170,7 +170,7 @@ textarea{resize:vertical;min-height:80px;}
 .opp-cta:hover{background:#f5a623;color:#0e0e0e;}
 .opp-migrated{text-align:center;padding:.65rem;color:#4caf82;font-family:'Barlow Condensed',sans-serif;font-size:.85rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;border:1px solid #1a3a2a;background:#0e1e16;border-radius:3px;animation:fadein .3s ease;}
 @keyframes fadein{from{opacity:0;}to{opacity:1;}}
-
+ 
 /* GOALS */
 .money-unlocked{background:#141414;border:1px solid #1a3a2a;border-radius:3px;padding:.85rem 1rem;margin-bottom:1.25rem;display:flex;justify-content:space-between;align-items:center;}
 .mu-label{font-family:'Barlow Condensed',sans-serif;font-size:.78rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#4caf82;}
@@ -208,14 +208,14 @@ textarea{resize:vertical;min-height:80px;}
 .toggle-slider:before{content:'';position:absolute;width:14px;height:14px;left:3px;bottom:3px;background:#555;border-radius:50%;transition:.2s;}
 .toggle input:checked + .toggle-slider{background:#f5a623;}
 .toggle input:checked + .toggle-slider:before{transform:translateX(16px);background:#0e0e0e;}
-
+ 
 /* PREMIUM GATE */
 .premium-gate{background:#141414;border:1px solid #2a2a1a;border-radius:3px;padding:2rem 1.5rem;text-align:center;margin-top:1rem;}
 .pg-eyebrow{font-family:'Barlow Condensed',sans-serif;font-size:.75rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:#f5a623;margin-bottom:.6rem;}
 .pg-title{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:1.6rem;letter-spacing:.04em;text-transform:uppercase;color:#e8e0d4;margin-bottom:.5rem;}
 .pg-sub{font-size:.95rem;color:#777;line-height:1.6;max-width:340px;margin:0 auto 1.25rem;}
 .pg-price{font-family:'Barlow Condensed',sans-serif;font-size:.88rem;color:#555;margin-top:.5rem;}
-
+ 
 /* BLUR GATE (free-user preview) */
 .blur-gate-wrap{position:relative;overflow:hidden;border-radius:3px;}
 .blur-gate-content{filter:blur(7px) brightness(.7);pointer-events:none;user-select:none;min-height:320px;}
@@ -224,7 +224,7 @@ textarea{resize:vertical;min-height:80px;}
 .blur-gate-title{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:1.4rem;letter-spacing:.04em;text-transform:uppercase;color:#e8e0d4;line-height:1.15;}
 .blur-gate-sub{font-size:.92rem;color:#aaa;line-height:1.55;max-width:300px;}
 .blur-gate-price{font-family:'Barlow Condensed',sans-serif;font-size:.82rem;color:#555;}
-
+ 
 /* CONTACT SUPPORT BUBBLE */
 .cs-bubble{position:fixed;bottom:1.25rem;right:1.25rem;z-index:300;}
 .cs-btn{width:48px;height:48px;background:#f5a623;border:none;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:.85rem;letter-spacing:.06em;color:#0e0e0e;box-shadow:0 2px 12px rgba(0,0,0,.4);transition:all .15s;}
@@ -241,25 +241,25 @@ textarea{resize:vertical;min-height:80px;}
 .cs-submit{background:#f5a623;border:none;border-radius:3px;padding:.55rem;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-size:.85rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#0e0e0e;transition:background .15s;}
 .cs-submit:hover{background:#ffc04a;}
 .cs-submit:disabled{background:#333;color:#555;cursor:not-allowed;}
-
+ 
 /* MISC */
 .save-indicator{font-family:'Barlow Condensed',sans-serif;font-size:.72rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#4caf82;animation:fadein .3s ease;}
 .err{font-size:.88rem;color:#e05252;margin-top:.3rem;}
 `;
-
+ 
 // -- MAIN APP ---------------------------------------------------------------
 export default function App() {
-
+ 
   // -- AUTH ----------------------------------------------------------------
   const [session,      setSession]      = useState(null);
   const [authLoading,  setAuthLoading]  = useState(true);
-
+ 
   // -- PREMIUM -------------------------------------------------------------
   const [isPremium,    setIsPremium]    = useState(false);
-
+ 
   // -- NAV -----------------------------------------------------------------
   const [tab,          setTab]          = useState("input");
-
+ 
   // -- BUSINESS PROFILE ----------------------------------------------------
   const [p, setP] = useState({
     bizName:"", trade:"", location:"", yearsOp:"", employees:"",
@@ -272,37 +272,37 @@ export default function App() {
   const [autoSaved,    setAutoSaved]    = useState(false);
   const [saveError,    setSaveError]    = useState(null);
   const profileLoaded  = useRef(false);
-
+ 
   // -- CANVAS --------------------------------------------------------------
   const [canvas,       setCanvas]       = useState({});
   const [canvasScores, setCanvasScores] = useState({});
   const [cLoading,     setCLoading]     = useState(false);
   const [scoreLoading, setScoreLoading] = useState(false);
   const [scoreTooltip, setScoreTooltip] = useState(null); // {key, x, y}
-
+ 
   // -- OPPORTUNITIES --------------------------------------------------------
   const [opps,         setOpps]         = useState([]);
   const [oppLoading,   setOppLoading]   = useState(false);
   const [migratedMsg,  setMigratedMsg]  = useState({}); // {oppId: true}
-
+ 
   // -- GOALS ----------------------------------------------------------------
   const [goals,        setGoals]        = useState([]);
   const [goalSteps,    setGoalSteps]    = useState({}); // {goalId: [steps]}
-
+ 
   // -- CONTACT SUPPORT ------------------------------------------------------
   const [csOpen,       setCsOpen]       = useState(false);
   const [csSubject,    setCsSubject]    = useState("");
   const [csBody,       setCsBody]       = useState("");
   const [csSending,    setCsSending]    = useState(false);
   const [csSent,       setCsSent]       = useState(false);
-
+ 
   // -- STRIPE CHECKOUT ------------------------------------------------------
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [checkoutError,   setCheckoutError]   = useState(null);
   const [pendingUpgrade,  setPendingUpgrade]  = useState(false);
   const [legalAcknowledged, setLegalAcknowledged] = useState(false);
   const [showLegalModal,    setShowLegalModal]    = useState(false); // false | 'upgrade' | 'view'
-
+ 
   const startCheckout = async () => {
     setCheckoutLoading(true);
     setCheckoutError(null);
@@ -323,13 +323,13 @@ export default function App() {
     }
     setCheckoutLoading(false);
   };
-
+ 
   const handleUpgrade = async () => {
     if (isPremium) { setCheckoutError('You already have an active Premium subscription.'); return; }
     if (!legalAcknowledged) { setShowLegalModal('upgrade'); return; }
     await startCheckout();
   };
-
+ 
   const acceptLegal = async () => {
     const { error } = await supabase.from('businesses')
       .update({ legal_acknowledged_at: new Date().toISOString() })
@@ -338,7 +338,7 @@ export default function App() {
     setShowLegalModal(false);
     await startCheckout();
   };
-
+ 
   // -- CHECKOUT RETURN: poll for subscription activation ------------------
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -361,9 +361,9 @@ export default function App() {
     }, 2000);
     return () => clearInterval(poll);
   }, [session]);
-
+ 
   // (auto-switch removed -- input tab is always accessible)
-
+ 
   // -- MANAGE BILLING (Stripe portal) ------------------------------------
   const [billingLoading, setBillingLoading] = useState(false);
   const handleManageBilling = async () => {
@@ -380,12 +380,12 @@ export default function App() {
     }
     setBillingLoading(false);
   };
-
+ 
   // -- COMPUTED -------------------------------------------------------------
   const moneyUnlocked = goals
     .filter(g => g.status === "completed")
     .reduce((sum, g) => sum + (parseFloat(g.estimated_value) || 0), 0);
-
+ 
   const gross = p.annualRev && p.cogs
     ? (parseFloat(p.annualRev) - parseFloat(p.cogs)).toFixed(0)
     : null;
@@ -395,7 +395,7 @@ export default function App() {
   const nm = p.netIncome && p.annualRev
     ? ((parseFloat(p.netIncome) / parseFloat(p.annualRev)) * 100).toFixed(1)
     : null;
-
+ 
   // -- AUTH LISTENER --------------------------------------------------------
   useEffect(() => {
     const hashHasToken = window.location.hash.includes('access_token');
@@ -411,7 +411,7 @@ export default function App() {
     const t = setTimeout(() => setAuthLoading(false), 4000);
     return () => { subscription.unsubscribe(); clearTimeout(t); };
   }, []);
-
+ 
   // -- LOAD ALL USER DATA ON LOGIN ------------------------------------------
   useEffect(() => {
     if (!session) return;
@@ -423,7 +423,7 @@ export default function App() {
       loadGoals();
     })();
   }, [session]);
-
+ 
   async function loadProfile() {
     const { data, error } = await supabase.from('businesses')
       .select('*').eq('user_id', session.user.id).maybeSingle();
@@ -449,13 +449,13 @@ export default function App() {
       if (data.legal_acknowledged_at) setLegalAcknowledged(true);
     }
   }
-
+ 
   async function loadSubscription() {
     const { data } = await supabase.from('subscriptions')
       .select('status').eq('user_id', session.user.id).single();
     setIsPremium(data?.status === 'active');
   }
-
+ 
   async function loadCanvas() {
     const { data } = await supabase.from('canvas_cells')
       .select('*').eq('user_id', session.user.id);
@@ -470,14 +470,14 @@ export default function App() {
       setSubmitted(true);
     }
   }
-
+ 
   async function loadOpportunities() {
     const { data } = await supabase.from('opportunities')
       .select('*').eq('user_id', session.user.id)
       .eq('migrated', false).order('sort_order');
     setOpps(data || []);
   }
-
+ 
   async function loadGoals() {
     const { data: gData } = await supabase.from('goals')
       .select('*').eq('user_id', session.user.id).order('sort_order');
@@ -491,8 +491,8 @@ export default function App() {
     }));
     setGoalSteps(stepsMap);
   }
-
-
+ 
+ 
   // -- AUTH ACTIONS ---------------------------------------------------------
   const signInWithGoogle = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
@@ -501,7 +501,7 @@ export default function App() {
     });
     if (error) console.error('Login error:', error.message);
   };
-
+ 
   const signOut = async () => {
     await supabase.auth.signOut({ scope: 'global' });
     profileLoaded.current = false;
@@ -514,7 +514,7 @@ export default function App() {
     setOpps([]); setGoals([]); setGoalSteps({});
     setCsSubject(""); setCsBody(""); setCsSent(false); setTab("input"); setIsPremium(false);
   };
-
+ 
   // -- SAVE PROFILE ---------------------------------------------------------
   const saveProfile = useCallback(async () => {
     if (!session) return false;
@@ -542,7 +542,7 @@ export default function App() {
     setSaveError(null);
     return true;
   }, [session, p]);
-
+ 
   // -- AUTO-SAVE PROFILE (debounced) -----------------------------------------
   useEffect(() => {
     if (!session) return;
@@ -556,19 +556,10 @@ export default function App() {
     }, 1500);
     return () => clearTimeout(timer);
   }, [session, p, saveProfile]);
-
-  // -- AUTO-SCORE CANVAS (debounced 3s after canvas change) ------------------
-  useEffect(() => {
-    if (!session || !submitted) return;
-    const hasContent = CELLS.some(c => canvas[c.k]);
-    if (!hasContent) return;
-    const timer = setTimeout(() => { genScores(canvas); }, 3000);
-    return () => clearTimeout(timer);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [canvas, session, submitted]);
-
-  // -- AUTO-REGEN OPPORTUNITIES (debounced 8s after canvas change) -----------
+ 
+  // -- AUTO-REGEN OPPORTUNITIES + SCORES (debounced 8s after canvas change) --
   // Runs for ALL users (free + premium). Blur gate controls visibility, not generation.
+  // Opportunities generate first, then scores are derived from them.
   useEffect(() => {
     if (!session || !submitted) return;
     const hasContent = CELLS.some(c => canvas[c.k]);
@@ -577,8 +568,7 @@ export default function App() {
     return () => clearTimeout(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canvas, session, submitted]);
-
-
+ 
   // -- SAFETY NET: generate opportunities when user visits tab if missing -----
   // The 8s debounce timer above can be reset by auth events or state changes.
   // This ensures opportunities generate when a user actually views the tab.
@@ -592,7 +582,8 @@ export default function App() {
     genOpportunities(canvas);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, session, submitted, oppLoading, opps.length]);
-  
+ 
+ 
   // -- CONTEXT STRING FOR AI -------------------------------------------------
   const ctx = () => `Business:${p.bizName}
 Trade:${p.trade}
@@ -606,7 +597,7 @@ NetIncome:$${p.netIncome}
 TopService:${p.topService}
 AvgJobValue:$${p.avgJobValue}
 PainPoints:${p.painPoints}`;
-
+ 
   // -- GENERATE CANVAS -------------------------------------------------------
   const genCanvas = async () => {
     setCLoading(true);
@@ -626,21 +617,20 @@ PainPoints:${p.painPoints}`;
         updated_at: new Date().toISOString(),
       }));
       await supabase.from('canvas_cells').upsert(rows, { onConflict: 'user_id,cell_key' });
-      // Score the canvas
-      genScores(parsed);
-      // Generate opportunities too
+      // Generate opportunities first, then scores chain automatically
       genOpportunities(parsed);
     } catch(e) { console.error('Canvas error:', e); }
     setCLoading(false);
   };
-
+ 
   // -- GENERATE CANVAS SCORES ------------------------------------------------
-  const genScores = async (canvasData) => {
+  // Scores are derived from opportunities + input data. Never called independently.
+  const genScores = async (canvasData, opportunities = []) => {
     setScoreLoading(true);
     try {
       const data = await callEdge('claude-proxy', {
-        system: `You are a lean canvas analyst. Score each canvas cell 0-100 based on: (1) how optimized the content is, (2) integration with other cells, (3) specificity and actionability. Return ONLY valid JSON: {"problem":{"score":75,"preview":"Cut labor costs"},...} -- one entry per cell key. The preview is 3-5 words describing the top opportunity linked to this cell.`,
-        user: `Score this lean canvas:\n${JSON.stringify(canvasData)}\n\nBusiness context:\n${ctx()}`
+        system: `You are a lean canvas analyst. Score each canvas cell 0-100 based on: (1) how many high-impact opportunities were generated from this cell, (2) how well the content aligns with the generated opportunities, (3) specificity and actionability. Return ONLY valid JSON: {"problem":{"score":75,"preview":"Cut labor costs"},...} -- one entry per cell key. The preview is 3-5 words describing the top opportunity linked to this cell.`,
+        user: `Score this lean canvas:\n${JSON.stringify(canvasData)}\n\nBusiness context:\n${ctx()}\n\nGenerated opportunities:\n${JSON.stringify(opportunities)}`
       }, session);
       const parsed = jp(data?.text || '{}');
       if (!parsed) { setScoreLoading(false); return; }
@@ -657,7 +647,7 @@ PainPoints:${p.painPoints}`;
     } catch(e) { console.error('Score error:', e); }
     setScoreLoading(false);
   };
-
+ 
   // -- GENERATE OPPORTUNITIES ------------------------------------------------
   const genOpportunities = async (canvasData) => {
     setOppLoading(true);
@@ -684,17 +674,29 @@ PainPoints:${p.painPoints}`;
       const { data: inserted } = await supabase.from('opportunities')
         .insert(rows).select();
       setOpps(inserted || []);
+      // Chain: generate scores based on opportunities + canvas data
+      genScores(canvasData, parsed);
     } catch(e) { console.error('Opp error:', e); }
     setOppLoading(false);
   };
-
+ 
   // -- SUBMIT PROFILE --------------------------------------------------------
   const submit = async () => {
     setSubmitted(true);
     setTab("canvas");
     await saveProfile();
+    // Save canvas cells to Supabase
+    const rows = CELLS.map(c => ({
+      user_id:    session.user.id,
+      cell_key:   c.k,
+      content:    canvas[c.k] || '',
+      updated_at: new Date().toISOString(),
+    }));
+    await supabase.from('canvas_cells').upsert(rows, { onConflict: 'user_id,cell_key' });
+    // Generate opportunities first, then scores chain automatically
+    genOpportunities(canvas);
   };
-
+ 
   // -- SAVE CANVAS CELL EDIT -------------------------------------------------
   const saveCanvasCell = useCallback(async (key, value) => {
     setCanvas(prev => ({ ...prev, [key]: value }));
@@ -705,7 +707,7 @@ PainPoints:${p.painPoints}`;
       updated_at: new Date().toISOString(),
     }, { onConflict: 'user_id,cell_key' });
   }, [session]);
-
+ 
   // -- MIGRATE OPPORTUNITY -> GOAL --------------------------------------------
   const migrateToGoal = async (opp) => {
     setMigratedMsg(prev => ({ ...prev, [opp.id]: true }));
@@ -761,7 +763,7 @@ PainPoints:${p.painPoints}`;
       setMigratedMsg(prev => { const n = {...prev}; delete n[opp.id]; return n; });
     }, 2000);
   };
-
+ 
   // -- UPDATE GOAL STEP STATUS -----------------------------------------------
   const cycleStepStatus = async (goalId, stepId, currentStatus) => {
     const next = currentStatus === 'not_started' ? 'in_progress'
@@ -788,7 +790,7 @@ PainPoints:${p.painPoints}`;
       }
     }
   };
-
+ 
   const completeGoal = async (goalId) => {
     await supabase.from('goals').update({
       status: 'completed',
@@ -797,14 +799,14 @@ PainPoints:${p.painPoints}`;
     }).eq('id', goalId);
     setGoals(prev => prev.map(g => g.id === goalId ? {...g, status:'completed', completed_at: new Date().toISOString()} : g));
   };
-
+ 
   // -- UPDATE GOAL FIELD -----------------------------------------------------
   const updateGoalField = async (goalId, field, value) => {
     setGoals(prev => prev.map(g => g.id === goalId ? {...g, [field]: value} : g));
     await supabase.from('goals')
       .update({ [field]: value, updated_at: new Date().toISOString() }).eq('id', goalId);
   };
-
+ 
   // -- UPDATE STEP TEXT ------------------------------------------------------
   const updateStepText = async (goalId, stepId, value) => {
     setGoalSteps(prev => ({
@@ -814,7 +816,7 @@ PainPoints:${p.painPoints}`;
     await supabase.from('goal_steps')
       .update({ step_text: value, updated_at: new Date().toISOString() }).eq('id', stepId);
   };
-
+ 
   // -- UPDATE STEP DAYS ------------------------------------------------------
   const updateStepDays = async (goalId, stepId, value) => {
     const days = value === '' ? null : parseInt(value, 10) || null;
@@ -825,7 +827,7 @@ PainPoints:${p.painPoints}`;
     await supabase.from('goal_steps')
       .update({ days_to_complete: days, updated_at: new Date().toISOString() }).eq('id', stepId);
   };
-
+ 
   // -- TOGGLE SMS FOR GOAL ---------------------------------------------------
   const toggleGoalSMS = async (goalId, current) => {
     if (!p.phoneNumber) {
@@ -834,7 +836,7 @@ PainPoints:${p.painPoints}`;
     }
     await updateGoalField(goalId, 'sms_enabled', !current);
   };
-
+ 
   // -- CONTACT SUPPORT -------------------------------------------------------
   const sendSupport = async () => {
     if (!csBody.trim() || csSending) return;
@@ -852,7 +854,7 @@ PainPoints:${p.painPoints}`;
     }
     setCsSending(false);
   };
-
+ 
   // -- SCORE BADGE HELPERS ---------------------------------------------------
   const scoreClass = (score) => {
     if (score == null) return 'score-none';
@@ -860,7 +862,7 @@ PainPoints:${p.painPoints}`;
     if (score >= 40) return 'score-md';
     return 'score-lo';
   };
-
+ 
   const handleScoreBadgeClick = (e, cellKey) => {
     const s = canvasScores[cellKey];
     if (!s?.score) return;
@@ -872,14 +874,14 @@ PainPoints:${p.painPoints}`;
       setTab("opportunities");
     }
   };
-
+ 
   // -- GROUPED OPPORTUNITIES -------------------------------------------------
   const groupedOpps = CELLS.reduce((acc, c) => {
     const cards = opps.filter(o => o.canvas_cell === c.k);
     if (cards.length) acc[c.k] = { label: c.l, cards };
     return acc;
   }, {});
-
+ 
   // -- RENDER ----------------------------------------------------------------
   if (authLoading) return (
     <>
@@ -892,27 +894,27 @@ PainPoints:${p.painPoints}`;
       </div>
     </>
   );
-
+ 
   if (!session) return <LandingPage onSignIn={signInWithGoogle} />;
-
+ 
   const TABS = [
     { id:"input",         l:"Input" },
     { id:"canvas",        l:"Canvas",        lock:!submitted },
     { id:"opportunities", l:"Opportunities", lock:!submitted, premium:true },
     { id:"goals",         l:"Goals",         lock:!submitted, premium:true },
   ];
-
+ 
   return (
     <>
       <style>{CSS}</style>
       <div className="app" onClick={() => scoreTooltip && setScoreTooltip(null)}>
-
+ 
         {/* HEADER */}
         <div className="hdr">
           <div className="logo">Trade<span>Stack</span></div>
           <div className="hdr-tagline">Obt<span className="ai">ai</span>n what others overlook.</div>
         </div>
-
+ 
         {/* TABS */}
         <div className="tabs">
           {TABS.map(t => (
@@ -928,14 +930,14 @@ PainPoints:${p.painPoints}`;
             </button>
           ))}
         </div>
-
+ 
         {/* AI DISCLAIMER BANNER — all tabs except input */}
         {tab !== "input" && (
           <div className="ai-disclaimer">AI-GENERATED CONTENT - NOT LEGAL OR FINANCIAL ADVICE.</div>
         )}
-
+ 
         <div className="pg">
-
+ 
           {/* -- INPUT TAB ------------------------------------------------ */}
           {tab==="input" && <>
             <div className="stitle">Your Business{autoSaved && <span className="save-indicator" style={{marginLeft:'.5rem',fontSize:'.72rem'}}>Saved</span>}</div>
@@ -974,7 +976,7 @@ PainPoints:${p.painPoints}`;
                 <input type="tel" inputMode="tel" value={p.phoneNumber} onChange={e=>setP(v=>({...v,phoneNumber:e.target.value}))} placeholder="+1 555 000 0000"/>
               </div>
             </div>
-
+ 
             <div className="divider"/>
             <div className="stitle">Business Model</div>
             <div className="g2">
@@ -995,7 +997,7 @@ PainPoints:${p.painPoints}`;
                 </div>
               ))}
             </div>
-
+ 
             <div className="divider"/>
             <div className="stitle">Financials (Annual)</div>
             <div className="g2">
@@ -1022,7 +1024,7 @@ PainPoints:${p.painPoints}`;
                 <textarea value={p.painPoints} onChange={e=>setP(v=>({...v,painPoints:e.target.value}))} placeholder="Chasing invoices, no-shows, slow seasons..."/>
               </div>
             </div>
-
+ 
             {!isPremium && submitted && (
               <div style={{background:'#141414',border:'1px solid #2a2a1a',borderRadius:'3px',padding:'.85rem 1rem',marginTop:'1rem',display:'flex',justifyContent:'space-between',alignItems:'center',gap:'1rem',flexWrap:'wrap'}}>
                 <div>
@@ -1033,7 +1035,7 @@ PainPoints:${p.painPoints}`;
                 <button className="btn bp" style={{width:'auto',whiteSpace:'nowrap'}} onClick={handleUpgrade} disabled={checkoutLoading}>{checkoutLoading ? 'Redirecting...' : 'Start 7-Day Free Trial'}</button>
               </div>
             )}
-
+ 
             <div className="form-end" style={{gap:'.75rem',flexWrap:'wrap'}}>
               {submitted && (
                 <button className="btn bg" onClick={saveProfile} disabled={saving}>
@@ -1043,16 +1045,16 @@ PainPoints:${p.painPoints}`;
               <button
                 className="btn bp"
                 onClick={submit}
-                disabled={!p.bizName || !p.trade || !p.annualRev}
+                disabled={!p.bizName || !p.trade || !p.annualRev || oppLoading}
               >
-                {submitted ? 'Save & View Canvas' : 'Save & View Canvas'}
+                {oppLoading ? 'Generating Insights...' : 'Save & View Canvas'}
               </button>
             </div>
           </>}
-
+ 
           {/* -- CANVAS TAB ----------------------------------------------- */}
           {tab==="canvas" && <>
-            <div className="stitle">Lean Canvas - {p.bizName}{scoreLoading && <span className="save-indicator" style={{marginLeft:'.5rem',fontSize:'.72rem',color:'#888'}}>Scoring...</span>}</div>
+            <div className="stitle">Lean Canvas - {p.bizName}{oppLoading && <span className="save-indicator" style={{marginLeft:'.5rem',fontSize:'.72rem',color:'#f5a623'}}>Analyzing opportunities...</span>}{!oppLoading && scoreLoading && <span className="save-indicator" style={{marginLeft:'.5rem',fontSize:'.72rem',color:'#888'}}>Scoring canvas...</span>}</div>
             <div className="canvas">
               {CELLS.map(c => (
                 <div key={c.k} className="cc">
@@ -1077,7 +1079,7 @@ PainPoints:${p.painPoints}`;
               ))}
             </div>
           </>}
-
+ 
           {/* -- OPPORTUNITIES TAB ---------------------------------------- */}
           {tab==="opportunities" && <>
             {!isPremium
@@ -1151,7 +1153,7 @@ PainPoints:${p.painPoints}`;
                     </>
             }
           </>}
-
+ 
           {/* -- GOALS TAB ------------------------------------------------ */}
           {tab==="goals" && <>
             {!isPremium
@@ -1220,7 +1222,7 @@ PainPoints:${p.painPoints}`;
                     <span className="mu-value">${moneyUnlocked.toLocaleString()}</span>
                   </div>
                   <p className="days-hint">Enter the number of days (X) from the previous step you would like to receive a text reminder for that goal.</p>
-
+ 
                   {goals.length === 0
                     ? <div className="empty">
                         <p>No goals yet.</p>
@@ -1265,7 +1267,7 @@ PainPoints:${p.painPoints}`;
                                     <span className="goal-value-label">/yr</span>
                                   </div>
                                 </div>
-
+ 
                                 {/* Steps */}
                                 {steps.length > 0 && (
                                   <div className="goal-steps">
@@ -1295,7 +1297,7 @@ PainPoints:${p.painPoints}`;
                                     ))}
                                   </div>
                                 )}
-
+ 
                                 {/* SMS Toggle */}
                                 <div className="sms-toggle-row">
                                   <span className="sms-toggle-label">Daily SMS Reminder (8pm)</span>
@@ -1313,11 +1315,11 @@ PainPoints:${p.painPoints}`;
                           })}
                       </>
                   }
-
+ 
                 </>
             }
           </>}
-
+ 
           {/* Bottom bar — visible on all tabs */}
           <div style={{marginTop:'2rem',paddingTop:'1rem',borderTop:'1px solid #1e1e1e',display:'flex',alignItems:'center',justifyContent:'center',gap:'1rem',flexWrap:'wrap'}}>
             {isPremium && <span className="premium-badge">Premium</span>}
@@ -1331,12 +1333,12 @@ PainPoints:${p.painPoints}`;
             </button>
             <button className="btn bg" style={{padding:'.4rem .85rem',fontSize:'.75rem'}} onClick={signOut}>Sign Out</button>
           </div>
-
+ 
           {/* LEGAL LINK */}
           <button className="legal-pg-link" onClick={() => setShowLegalModal('view')}>Legal</button>
-
+ 
         </div>{/* end .pg */}
-
+ 
         {/* -- CONTACT SUPPORT BUBBLE ------------------------------------- */}
         <div className="cs-bubble">
           {csOpen && (
@@ -1360,9 +1362,9 @@ PainPoints:${p.painPoints}`;
             {csOpen ? 'close' : 'help'}
           </button>
         </div>
-
+ 
       </div>
-
+ 
       {/* -- LEGAL MODAL ------------------------------------------------- */}
       {showLegalModal && (
         <div className="legal-overlay" onClick={() => setShowLegalModal(false)}>
@@ -1394,7 +1396,8 @@ PainPoints:${p.painPoints}`;
           </div>
         </div>
       )}
-
+ 
     </>
   );
 }
+ 
