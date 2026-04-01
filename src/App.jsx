@@ -680,6 +680,35 @@ PainPoints:${p.painPoints}`;
     setOppLoading(false);
   };
  
+  // -- REFILL OPPORTUNITIES FOR A SINGLE CELL (after migration) ---------------
+  // Generates just enough (max 2) new opps to bring a cell back to 2.
+  const refillCellOpps = async (cellKey, canvasData) => {
+    const remaining = opps.filter(o => o.canvas_cell === cellKey && !o.migrated);
+    const needed = 2 - remaining.length;
+    if (needed <= 0) return;
+    const existingTitles = remaining.map(o => o.title);
+    try {
+      const data = await callEdge('claude-proxy', {
+        system: `You are a revenue and efficiency consultant for small trades businesses. Generate exactly ${needed} new opportunity card(s) for the "${cellKey}" canvas cell. Return ONLY valid JSON array: [{"canvas_cell":"${cellKey}","title":"string","insight":"string (2-3 sentences, specific and actionable)","impact_label":"High"|"Medium"|"Low"}]. Do NOT duplicate these existing opportunities: ${JSON.stringify(existingTitles)}. Be specific to the trade.`,
+        user: `Generate ${needed} replacement opportunity card(s) for the "${cellKey}" cell:\n${ctx()}\n\nCanvas cell content: ${canvasData[cellKey] || ''}\n\nFull canvas:\n${JSON.stringify(canvasData)}`
+      }, session);
+      const parsed = jp(data?.text || '[]');
+      if (!Array.isArray(parsed) || parsed.length === 0) return;
+      const rows = parsed.slice(0, needed).map((opp, i) => ({
+        user_id:      session.user.id,
+        canvas_cell:  cellKey,
+        title:        opp.title,
+        insight:      opp.insight,
+        impact_label: opp.impact_label || 'Medium',
+        migrated:     false,
+        sort_order:   opps.length + i,
+      }));
+      const { data: inserted } = await supabase.from('opportunities')
+        .insert(rows).select();
+      if (inserted) setOpps(prev => [...prev, ...inserted]);
+    } catch(e) { console.error('Refill error:', e); }
+  };
+
   // -- SUBMIT PROFILE --------------------------------------------------------
   const submit = async () => {
     setSubmitted(true);
@@ -710,6 +739,7 @@ PainPoints:${p.painPoints}`;
  
   // -- MIGRATE OPPORTUNITY -> GOAL --------------------------------------------
   const migrateToGoal = async (opp) => {
+    justMigrated.current = opp.canvas_cell; // Track which cell lost an opp
     setMigratedMsg(prev => ({ ...prev, [opp.id]: true }));
     // Mark migrated in DB
     await supabase.from('opportunities')
@@ -759,7 +789,14 @@ PainPoints:${p.painPoints}`;
     setGoals(prev => [...prev, goal]);
     // Remove from local opps after delay
     setTimeout(() => {
-      setOpps(prev => prev.filter(o => o.id !== opp.id));
+      setOpps(prev => {
+        const updated = prev.filter(o => o.id !== opp.id);
+        const cellRemaining = updated.filter(o => o.canvas_cell === opp.canvas_cell && !o.migrated);
+        if (cellRemaining.length < 2) {
+          refillCellOpps(opp.canvas_cell, canvas);
+        }
+        return updated;
+      });
       setMigratedMsg(prev => { const n = {...prev}; delete n[opp.id]; return n; });
     }, 2000);
   };
