@@ -1292,8 +1292,8 @@ PainPoints:${p.painPoints}`;
                             </div>
                           ))}
                         </div>
-                        {oppLoading2 && <div className="loader" style={{marginTop:'1rem'}}><div className="lbar"/><div className="llbl">Finishing the last 5 sections. Wait ~30 seconds more.</div></div>}
                       ))}
+                        {oppLoading2 && <div className="loader" style={{marginTop:'1rem'}}><div className="lbar"/><div className="llbl">Finishing the last 5 sections. Wait ~30 seconds more.</div></div>}
                     </>
             }
           </>}
