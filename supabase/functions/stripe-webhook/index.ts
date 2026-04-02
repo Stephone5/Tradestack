@@ -10,8 +10,21 @@ const STRIPE_WEBHOOK_SECRET  = Deno.env.get('STRIPE_WEBHOOK_SECRET');
 const SUPABASE_URL           = Deno.env.get('SUPABASE_URL');
 const SUPABASE_SERVICE       = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
-const stripe   = new Stripe(STRIPE_SECRET, { apiVersion: '2024-06-20', httpClient: Stripe.createFetchHttpClient() });
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE);
+// ── BOOT-TIME VALIDATION ───────────────────────────────────────────────────
+console.log('[stripe-webhook] Boot check:',
+  'STRIPE_SECRET_KEY:', STRIPE_SECRET ? 'SET' : 'MISSING',
+  'STRIPE_WEBHOOK_SECRET:', STRIPE_WEBHOOK_SECRET ? 'SET' : 'MISSING',
+  'SUPABASE_URL:', SUPABASE_URL ? 'SET' : 'MISSING',
+  'SUPABASE_SERVICE_ROLE_KEY:', SUPABASE_SERVICE ? 'SET' : 'MISSING',
+);
+
+const stripe   = new Stripe(STRIPE_SECRET!, { apiVersion: '2024-06-20', httpClient: Stripe.createFetchHttpClient() });
+const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE!);
+
+// SubtleCryptoProvider is REQUIRED for Deno / non-Node environments.
+// Without this, constructEventAsync silently fails because Node's crypto module
+// is not available in Deno, causing 100% webhook signature verification failures.
+const cryptoProvider = Stripe.createSubtleCryptoProvider();
 
 const corsHeaders = {
   'Access-Control-Allow-Origin':  '*',
@@ -23,32 +36,65 @@ Deno.serve(async (req) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
+  // ── HEALTH CHECK (GET) ──────────────────────────────────────────────────
+  if (req.method === 'GET') {
+    return new Response(JSON.stringify({
+      status: 'ok',
+      secrets: {
+        STRIPE_SECRET_KEY:       STRIPE_SECRET ? 'SET' : 'MISSING',
+        STRIPE_WEBHOOK_SECRET:   STRIPE_WEBHOOK_SECRET ? 'SET' : 'MISSING',
+        SUPABASE_URL:            SUPABASE_URL ? 'SET' : 'MISSING',
+        SUPABASE_SERVICE_ROLE_KEY: SUPABASE_SERVICE ? 'SET' : 'MISSING',
+      },
+    }), {
+      status: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
   const body      = await req.text();
   const signature = req.headers.get('stripe-signature');
 
   if (!signature) {
+    console.error('[stripe-webhook] Missing stripe-signature header');
     return new Response('Missing signature', { status: 400 });
+  }
+
+  if (!STRIPE_WEBHOOK_SECRET) {
+    console.error('[stripe-webhook] STRIPE_WEBHOOK_SECRET is not set — cannot verify webhook');
+    return new Response(JSON.stringify({ error: 'Webhook secret not configured' }), {
+      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
   }
 
   let event;
   try {
-    event = await stripe.webhooks.constructEventAsync(body, signature, STRIPE_WEBHOOK_SECRET);
+    // The 5th arg (cryptoProvider) is CRITICAL for Deno.
+    // Without it, signature verification fails with a crypto error.
+    event = await stripe.webhooks.constructEventAsync(
+      body,
+      signature,
+      STRIPE_WEBHOOK_SECRET,
+      undefined,       // tolerance (use default)
+      cryptoProvider   // REQUIRED for Deno/Edge environments
+    );
   } catch (err) {
-    console.error('Webhook signature verification failed:', err.message);
+    console.error('[stripe-webhook] Signature verification failed:', err.message);
     return new Response('Webhook error: ' + err.message, { status: 400 });
   }
 
   try {
-    console.log('Processing event:', event.type, event.id);
+    console.log('[stripe-webhook] Processing event:', event.type, event.id);
 
     switch (event.type) {
 
       case 'checkout.session.completed': {
         const session = event.data.object;
         const userId  = session.metadata?.user_id;
-        console.log('checkout.session.completed — user_id:', userId, 'customer:', session.customer, 'subscription:', session.subscription);
+        console.log('[stripe-webhook] checkout.session.completed — user_id:', userId,
+          'customer:', session.customer, 'subscription:', session.subscription);
         if (!userId) {
-          console.error('checkout.session.completed — NO user_id in metadata, skipping');
+          console.error('[stripe-webhook] checkout.session.completed — NO user_id in metadata, skipping');
           break;
         }
         const { data, error } = await supabase.from('subscriptions').upsert({
@@ -60,13 +106,13 @@ Deno.serve(async (req) => {
           updated_at:              new Date().toISOString(),
         }, { onConflict: 'user_id' });
         if (error) {
-          console.error('checkout.session.completed — Supabase upsert FAILED:', JSON.stringify(error));
+          console.error('[stripe-webhook] checkout.session.completed — Supabase upsert FAILED:', JSON.stringify(error));
           return new Response(JSON.stringify({ error: error.message }), {
             status: 500,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
           });
         }
-        console.log('checkout.session.completed — subscription activated for user', userId);
+        console.log('[stripe-webhook] checkout.session.completed — subscription activated for user', userId);
         break;
       }
 
@@ -75,16 +121,16 @@ Deno.serve(async (req) => {
         const status = (sub.status === 'active' || sub.status === 'trialing') ? 'active'
                      : sub.status === 'canceled' ? 'canceled'
                      : 'past_due';
-        console.log('customer.subscription.updated — sub:', sub.id, 'status:', status);
+        console.log('[stripe-webhook] customer.subscription.updated — sub:', sub.id, 'status:', status);
         const { error } = await supabase.from('subscriptions')
           .update({
             status,
-            current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
+            current_period_end: sub.current_period_end ? new Date(sub.current_period_end * 1000).toISOString() : null,
             updated_at:         new Date().toISOString(),
           })
           .eq('stripe_subscription_id', sub.id);
         if (error) {
-          console.error('customer.subscription.updated — Supabase update FAILED:', JSON.stringify(error));
+          console.error('[stripe-webhook] customer.subscription.updated — Supabase update FAILED:', JSON.stringify(error));
           return new Response(JSON.stringify({ error: error.message }), {
             status: 500,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -95,30 +141,30 @@ Deno.serve(async (req) => {
 
       case 'customer.subscription.deleted': {
         const sub = event.data.object;
-        console.log('customer.subscription.deleted — sub:', sub.id);
+        console.log('[stripe-webhook] customer.subscription.deleted — sub:', sub.id);
         const { error } = await supabase.from('subscriptions')
           .update({ status: 'canceled', updated_at: new Date().toISOString() })
           .eq('stripe_subscription_id', sub.id);
         if (error) {
-          console.error('customer.subscription.deleted — Supabase update FAILED:', JSON.stringify(error));
+          console.error('[stripe-webhook] customer.subscription.deleted — Supabase update FAILED:', JSON.stringify(error));
         }
         break;
       }
 
       case 'invoice.payment_failed': {
         const invoice = event.data.object;
-        console.log('invoice.payment_failed — sub:', invoice.subscription);
+        console.log('[stripe-webhook] invoice.payment_failed — sub:', invoice.subscription);
         const { error } = await supabase.from('subscriptions')
           .update({ status: 'past_due', updated_at: new Date().toISOString() })
           .eq('stripe_subscription_id', invoice.subscription);
         if (error) {
-          console.error('invoice.payment_failed — Supabase update FAILED:', JSON.stringify(error));
+          console.error('[stripe-webhook] invoice.payment_failed — Supabase update FAILED:', JSON.stringify(error));
         }
         break;
       }
 
       default:
-        console.log('Unhandled event type:', event.type);
+        console.log('[stripe-webhook] Unhandled event type:', event.type);
     }
 
     return new Response(JSON.stringify({ received: true }), {
@@ -127,7 +173,7 @@ Deno.serve(async (req) => {
     });
 
   } catch (err) {
-    console.error('Webhook handler error:', err);
+    console.error('[stripe-webhook] Handler error:', err);
     return new Response(JSON.stringify({ error: err.message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }

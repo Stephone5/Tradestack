@@ -272,6 +272,8 @@ export default function App() {
   const [autoSaved,    setAutoSaved]    = useState(false);
   const [saveError,    setSaveError]    = useState(null);
   const profileLoaded  = useRef(false);
+  const canvasEdited   = useRef(false);  // true only when user manually edits a canvas cell
+  const justMigrated   = useRef(null);   // canvas_cell key of the opp just migrated to a goal
 
   // -- CANVAS --------------------------------------------------------------
   const [canvas,       setCanvas]       = useState({});
@@ -557,26 +559,35 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [session, p, saveProfile]);
 
-  // -- AUTO-SCORE CANVAS (debounced 3s after canvas change) ------------------
+  // -- AUTO-REGEN OPPORTUNITIES + SCORES (debounced 8s after canvas EDIT) ----
+  // Only fires when user manually edits a canvas cell, NOT on page load.
+  // Opportunities generate first, then scores are derived from them.
   useEffect(() => {
     if (!session || !submitted) return;
+    if (!canvasEdited.current) return; // Skip if canvas was loaded from DB, not edited
     const hasContent = CELLS.some(c => canvas[c.k]);
     if (!hasContent) return;
-    const timer = setTimeout(() => { genScores(canvas); }, 3000);
+    const timer = setTimeout(() => {
+      canvasEdited.current = false;
+      genOpportunities(canvas);
+    }, 8000);
     return () => clearTimeout(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canvas, session, submitted]);
 
-  // -- AUTO-REGEN OPPORTUNITIES (debounced 8s after canvas change) -----------
-  // Runs for ALL users (free + premium). Blur gate controls visibility, not generation.
+  // -- SAFETY NET: generate opportunities for new users visiting tab ----------
+  // Only fires for truly new users (no opps AND no goals = never generated before).
   useEffect(() => {
+    if (tab !== 'opportunities' && tab !== 'goals') return;
     if (!session || !submitted) return;
+    if (oppLoading) return;
+    if (opps.length > 0) return;
+    if (goals.length > 0) return; // User has migrated opps before, don't mass-regenerate
     const hasContent = CELLS.some(c => canvas[c.k]);
     if (!hasContent) return;
-    const timer = setTimeout(() => { genOpportunities(canvas); }, 8000);
-    return () => clearTimeout(timer);
+    genOpportunities(canvas);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [canvas, session, submitted]);
+  }, [tab, session, submitted, oppLoading, opps.length, goals.length]);
 
 
   // -- CONTEXT STRING FOR AI -------------------------------------------------
@@ -612,21 +623,20 @@ PainPoints:${p.painPoints}`;
         updated_at: new Date().toISOString(),
       }));
       await supabase.from('canvas_cells').upsert(rows, { onConflict: 'user_id,cell_key' });
-      // Score the canvas
-      genScores(parsed);
-      // Generate opportunities too
+      // Generate opportunities first, then scores chain automatically
       genOpportunities(parsed);
     } catch(e) { console.error('Canvas error:', e); }
     setCLoading(false);
   };
 
   // -- GENERATE CANVAS SCORES ------------------------------------------------
-  const genScores = async (canvasData) => {
+  // Scores are derived from opportunities + input data. Never called independently.
+  const genScores = async (canvasData, opportunities = []) => {
     setScoreLoading(true);
     try {
       const data = await callEdge('claude-proxy', {
-        system: `You are a lean canvas analyst. Score each canvas cell 0-100 based on: (1) how optimized the content is, (2) integration with other cells, (3) specificity and actionability. Return ONLY valid JSON: {"problem":{"score":75,"preview":"Cut labor costs"},...} -- one entry per cell key. The preview is 3-5 words describing the top opportunity linked to this cell.`,
-        user: `Score this lean canvas:\n${JSON.stringify(canvasData)}\n\nBusiness context:\n${ctx()}`
+        system: `You are a lean canvas analyst. Score each canvas cell 0-100 based on: (1) how many high-impact opportunities were generated from this cell, (2) how well the content aligns with the generated opportunities, (3) specificity and actionability. Return ONLY valid JSON: {"problem":{"score":75,"preview":"Cut labor costs"},...} -- one entry per cell key. The preview is 3-5 words describing the top opportunity linked to this cell.`,
+        user: `Score this lean canvas:\n${JSON.stringify(canvasData)}\n\nBusiness context:\n${ctx()}\n\nGenerated opportunities:\n${JSON.stringify(opportunities)}`
       }, session);
       const parsed = jp(data?.text || '{}');
       if (!parsed) { setScoreLoading(false); return; }
@@ -670,8 +680,39 @@ PainPoints:${p.painPoints}`;
       const { data: inserted } = await supabase.from('opportunities')
         .insert(rows).select();
       setOpps(inserted || []);
+      // Chain: generate scores based on opportunities + canvas data
+      genScores(canvasData, parsed);
     } catch(e) { console.error('Opp error:', e); }
     setOppLoading(false);
+  };
+
+  // -- REFILL OPPORTUNITIES FOR A SINGLE CELL (after migration) ---------------
+  // Generates just enough (max 2) new opps to bring a cell back to 2.
+  const refillCellOpps = async (cellKey, canvasData) => {
+    const remaining = opps.filter(o => o.canvas_cell === cellKey && !o.migrated);
+    const needed = 2 - remaining.length;
+    if (needed <= 0) return;
+    const existingTitles = remaining.map(o => o.title);
+    try {
+      const data = await callEdge('claude-proxy', {
+        system: `You are a revenue and efficiency consultant for small trades businesses. Generate exactly ${needed} new opportunity card(s) for the "${cellKey}" canvas cell. Return ONLY valid JSON array: [{"canvas_cell":"${cellKey}","title":"string","insight":"string (2-3 sentences, specific and actionable)","impact_label":"High"|"Medium"|"Low"}]. Do NOT duplicate these existing opportunities: ${JSON.stringify(existingTitles)}. Be specific to the trade.`,
+        user: `Generate ${needed} replacement opportunity card(s) for the "${cellKey}" cell:\n${ctx()}\n\nCanvas cell content: ${canvasData[cellKey] || ''}\n\nFull canvas:\n${JSON.stringify(canvasData)}`
+      }, session);
+      const parsed = jp(data?.text || '[]');
+      if (!Array.isArray(parsed) || parsed.length === 0) return;
+      const rows = parsed.slice(0, needed).map((opp, i) => ({
+        user_id:      session.user.id,
+        canvas_cell:  cellKey,
+        title:        opp.title,
+        insight:      opp.insight,
+        impact_label: opp.impact_label || 'Medium',
+        migrated:     false,
+        sort_order:   opps.length + i,
+      }));
+      const { data: inserted } = await supabase.from('opportunities')
+        .insert(rows).select();
+      if (inserted) setOpps(prev => [...prev, ...inserted]);
+    } catch(e) { console.error('Refill error:', e); }
   };
 
   // -- SUBMIT PROFILE --------------------------------------------------------
@@ -679,10 +720,21 @@ PainPoints:${p.painPoints}`;
     setSubmitted(true);
     setTab("canvas");
     await saveProfile();
+    // Save canvas cells to Supabase
+    const rows = CELLS.map(c => ({
+      user_id:    session.user.id,
+      cell_key:   c.k,
+      content:    canvas[c.k] || '',
+      updated_at: new Date().toISOString(),
+    }));
+    await supabase.from('canvas_cells').upsert(rows, { onConflict: 'user_id,cell_key' });
+    // Generate opportunities first, then scores chain automatically
+    genOpportunities(canvas);
   };
 
   // -- SAVE CANVAS CELL EDIT -------------------------------------------------
   const saveCanvasCell = useCallback(async (key, value) => {
+    canvasEdited.current = true;
     setCanvas(prev => ({ ...prev, [key]: value }));
     await supabase.from('canvas_cells').upsert({
       user_id:    session.user.id,
@@ -694,6 +746,7 @@ PainPoints:${p.painPoints}`;
 
   // -- MIGRATE OPPORTUNITY -> GOAL --------------------------------------------
   const migrateToGoal = async (opp) => {
+    justMigrated.current = opp.canvas_cell; // Track which cell lost an opp
     setMigratedMsg(prev => ({ ...prev, [opp.id]: true }));
     // Mark migrated in DB
     await supabase.from('opportunities')
@@ -741,9 +794,16 @@ PainPoints:${p.painPoints}`;
       }
     } catch(e) { console.error('Steps error:', e); }
     setGoals(prev => [...prev, goal]);
-    // Remove from local opps after delay
+    // Remove from local opps after delay, then refill if cell drops below 2
     setTimeout(() => {
-      setOpps(prev => prev.filter(o => o.id !== opp.id));
+      setOpps(prev => {
+        const updated = prev.filter(o => o.id !== opp.id);
+        const cellRemaining = updated.filter(o => o.canvas_cell === opp.canvas_cell && !o.migrated);
+        if (cellRemaining.length < 2) {
+          refillCellOpps(opp.canvas_cell, canvas);
+        }
+        return updated;
+      });
       setMigratedMsg(prev => { const n = {...prev}; delete n[opp.id]; return n; });
     }, 2000);
   };
@@ -1029,16 +1089,16 @@ PainPoints:${p.painPoints}`;
               <button
                 className="btn bp"
                 onClick={submit}
-                disabled={!p.bizName || !p.trade || !p.annualRev}
+                disabled={!p.bizName || !p.trade || !p.annualRev || oppLoading}
               >
-                {submitted ? 'Save & View Canvas' : 'Save & View Canvas'}
+                {oppLoading ? 'Generating Insights...' : 'Save & View Canvas'}
               </button>
             </div>
           </>}
 
           {/* -- CANVAS TAB ----------------------------------------------- */}
           {tab==="canvas" && <>
-            <div className="stitle">Lean Canvas - {p.bizName}{scoreLoading && <span className="save-indicator" style={{marginLeft:'.5rem',fontSize:'.72rem',color:'#888'}}>Scoring...</span>}</div>
+            <div className="stitle">Lean Canvas - {p.bizName}{oppLoading && <span className="save-indicator" style={{marginLeft:'.5rem',fontSize:'.72rem',color:'#f5a623'}}>Analyzing opportunities...</span>}{!oppLoading && scoreLoading && <span className="save-indicator" style={{marginLeft:'.5rem',fontSize:'.72rem',color:'#888'}}>Scoring canvas...</span>}</div>
             <div className="canvas">
               {CELLS.map(c => (
                 <div key={c.k} className="cc">
