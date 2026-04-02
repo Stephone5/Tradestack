@@ -287,6 +287,7 @@ export default function App() {
   // -- OPPORTUNITIES --------------------------------------------------------
   const [opps,         setOpps]         = useState([]);
   const [oppLoading,   setOppLoading]   = useState(false);
+  const [oppLoading2,   setOppLoading2]   = useState(false);
   const [migratedMsg,  setMigratedMsg]  = useState({}); // {oppId: true}
  
   // -- GOALS ----------------------------------------------------------------
@@ -662,68 +663,91 @@ PainPoints:${p.painPoints}`;
   // -- GENERATE OPPORTUNITIES ------------------------------------------------
   const genOpportunities = async (canvasData) => {
     setOppLoading(true);
+    setOppLoading2(false);
     setCanvasScores({});
+    const BATCH1 = ['problem','solution','uvp','unfair'];
+    const BATCH2 = ['segments','metrics','channels','revenue','cost'];
+
+    const buildRows = (parsed, allowed, offset) =>
+      (Array.isArray(parsed) ? parsed : [])
+        .filter(o => allowed.includes(o.canvas_cell))
+        .map((opp, i) => ({
+          user_id: session.user.id, canvas_cell: opp.canvas_cell,
+          title: opp.title, insight: opp.insight,
+          impact_label: opp.impact_label || 'Medium',
+          migrated: false, sort_order: offset + i,
+        }));
+
+    const gapFill = async (inserted, cellKeys, offset) => {
+      const counts = {};
+      cellKeys.forEach(k => { counts[k] = 0; });
+      inserted.forEach(o => { if (counts[o.canvas_cell] !== undefined) counts[o.canvas_cell]++; });
+      const missing = cellKeys.filter(k => counts[k] < 2);
+      if (missing.length === 0) return inserted;
+      let all = [...inserted];
+      const fills = await Promise.all(missing.map(async k => {
+        const have = inserted.filter(o => o.canvas_cell === k);
+        const needed = 2 - have.length;
+        try {
+          const fd = await callEdge('claude-proxy', {
+            system: `Generate exactly ${needed} opportunity card(s) for the "${k}" canvas area showing how this business can make more money or stop wasting money there. Return ONLY valid JSON array: [{"canvas_cell":"${k}","title":"string","insight":"string","impact_label":"High"|"Medium"|"Low"}].`,
+            user: `${ctx()}\n\nCanvas "${k}": ${canvasData[k] || ''}`
+          }, session);
+          const fp = jp(fd?.text || '[]');
+          if (!Array.isArray(fp)) return [];
+          const fr = fp.slice(0, needed).map((opp, i) => ({
+            user_id: session.user.id, canvas_cell: k,
+            title: opp.title, insight: opp.insight,
+            impact_label: opp.impact_label || 'Medium',
+            migrated: false, sort_order: offset + all.length + i,
+          }));
+          const { data: fi } = await supabase.from('opportunities').insert(fr).select();
+          return fi || [];
+        } catch(e) { return []; }
+      }));
+      fills.forEach(r => { all = [...all, ...r]; });
+      return all;
+    };
+
     try {
-      const data = await callEdge('claude-proxy', {
-        system: `You are a revenue and efficiency consultant for small trades businesses. For EACH of these 9 canvas cells — problem, solution, uvp, unfair, segments, metrics, channels, revenue, cost — generate exactly 2 opportunity cards. Every card must answer one question: how can this owner make more money or stop wasting money in this area? Ground every card in the specific canvas content AND the financial data provided. Reference their actual numbers (revenue, costs, margins) where possible. Return ONLY valid JSON array: [{"canvas_cell":"problem","title":"string","insight":"string (2-3 sentences, specific, actionable, tied to their actual numbers and business)","impact_label":"High"|"Medium"|"Low"}]. You MUST return exactly 2 cards for each of the 9 canvas_cell values. No exceptions.`,
-        user: `Generate opportunities for this business:\n${ctx()}\n\nLean Canvas:\n${JSON.stringify(canvasData)}`
-      }, session);
-      const parsed = jp(data?.text || '[]');
-      if (!Array.isArray(parsed)) { setOppLoading(false); return; }
-      // Delete old non-migrated opportunities first
       await supabase.from('opportunities')
         .delete().eq('user_id', session.user.id).eq('migrated', false);
-      // Insert what came back from main call
-      const rows = parsed.map((opp, i) => ({
-        user_id:      session.user.id,
-        canvas_cell:  opp.canvas_cell,
-        title:        opp.title,
-        insight:      opp.insight,
-        impact_label: opp.impact_label || 'Medium',
-        migrated:     false,
-        sort_order:   i,
-      }));
-      const { data: inserted } = await supabase.from('opportunities')
-        .insert(rows).select();
-      let allOpps = inserted || [];
+
+      // BATCH 1: problem, solution, uvp, unfair
+      const b1data = await callEdge('claude-proxy', {
+        system: `You are a revenue and efficiency consultant for small trades businesses. For EACH of these 4 canvas cells — problem, solution, uvp, unfair — generate exactly 2 opportunity cards. Every card must show how this owner can make more money or stop wasting money in that area. Use the canvas content and financial data. Reference actual numbers where possible. Return ONLY valid JSON array: [{"canvas_cell":"problem","title":"string","insight":"string (2-3 sentences, specific and actionable)","impact_label":"High"|"Medium"|"Low"}]. You MUST return exactly 2 cards for each of the 4 cells.`,
+        user: `${ctx()}\n\nLean Canvas:\n${JSON.stringify(canvasData)}`
+      }, session);
+      const b1rows = buildRows(jp(b1data?.text || '[]'), BATCH1, 0);
+      const { data: b1raw } = b1rows.length > 0
+        ? await supabase.from('opportunities').insert(b1rows).select()
+        : { data: [] };
+      let b1opps = await gapFill(b1raw || [], BATCH1, 0);
+      setOpps(b1opps);
+      setOppLoading(false);
+      setOppLoading2(true);
+      genScores(canvasData, b1opps); // Partial scores for first 4 cells
+
+      // BATCH 2: segments, metrics, channels, revenue, cost
+      const b2data = await callEdge('claude-proxy', {
+        system: `You are a revenue and efficiency consultant for small trades businesses. For EACH of these 5 canvas cells — segments, metrics, channels, revenue, cost — generate exactly 2 opportunity cards. Every card must show how this owner can make more money or stop wasting money in that area. Use the canvas content and financial data. Reference actual numbers where possible. Return ONLY valid JSON array: [{"canvas_cell":"segments","title":"string","insight":"string (2-3 sentences, specific and actionable)","impact_label":"High"|"Medium"|"Low"}]. You MUST return exactly 2 cards for each of the 5 cells.`,
+        user: `${ctx()}\n\nLean Canvas:\n${JSON.stringify(canvasData)}`
+      }, session);
+      const b2rows = buildRows(jp(b2data?.text || '[]'), BATCH2, b1opps.length);
+      const { data: b2raw } = b2rows.length > 0
+        ? await supabase.from('opportunities').insert(b2rows).select()
+        : { data: [] };
+      let b2opps = await gapFill(b2raw || [], BATCH2, b1opps.length);
+      const allOpps = [...b1opps, ...b2opps];
       setOpps(allOpps);
-      // Check which cells have fewer than 2 cards and fill them individually
-      const cellCounts = {};
-      CELLS.forEach(c => { cellCounts[c.k] = 0; });
-      allOpps.forEach(o => { if (cellCounts[o.canvas_cell] !== undefined) cellCounts[o.canvas_cell]++; });
-      const missingCells = CELLS.filter(c => cellCounts[c.k] < 2);
-      if (missingCells.length > 0) {
-        const fillPromises = missingCells.map(async (c) => {
-          const have = allOpps.filter(o => o.canvas_cell === c.k);
-          const needed = 2 - have.length;
-          const existingTitles = have.map(o => o.title);
-          try {
-            const fillData = await callEdge('claude-proxy', {
-              system: `Generate exactly ${needed} opportunity card(s) for the "${c.k}" canvas area showing how this business can make more money or stop wasting money there. Return ONLY valid JSON array: [{"canvas_cell":"${c.k}","title":"string","insight":"string (2-3 sentences, specific, actionable)","impact_label":"High"|"Medium"|"Low"}]. Do not duplicate: ${JSON.stringify(existingTitles)}`,
-              user: `${ctx()}\n\nCanvas cell "${c.k}": ${canvasData[c.k] || ''}`
-            }, session);
-            const fp = jp(fillData?.text || '[]');
-            if (!Array.isArray(fp) || fp.length === 0) return [];
-            const fillRows = fp.slice(0, needed).map((opp, i) => ({
-              user_id:      session.user.id,
-              canvas_cell:  c.k,
-              title:        opp.title,
-              insight:      opp.insight,
-              impact_label: opp.impact_label || 'Medium',
-              migrated:     false,
-              sort_order:   allOpps.length + i,
-            }));
-            const { data: fi } = await supabase.from('opportunities').insert(fillRows).select();
-            return fi || [];
-          } catch(e) { return []; }
-        });
-        const fillResults = await Promise.all(fillPromises);
-        fillResults.forEach(r => { allOpps = [...allOpps, ...r]; });
-        setOpps(allOpps);
-      }
-      // Chain: generate scores
-      genScores(canvasData, allOpps);
-    } catch(e) { console.error('Opp error:', e); }
+      setOppLoading2(false);
+      genScores(canvasData, allOpps); // Final scores for all 9 cells
+
+    } catch(e) {
+      console.error('Opp error:', e);
+      setOppLoading(false);
+      setOppLoading2(false);
+    }
     setOppLoading(false);
   };
 
@@ -1170,7 +1194,7 @@ PainPoints:${p.painPoints}`;
  
           {/* -- CANVAS TAB ----------------------------------------------- */}
           {tab==="canvas" && <>
-            <div className="stitle">Lean Canvas - {p.bizName}{oppLoading && <span className="save-indicator" style={{marginLeft:'.5rem',fontSize:'.72rem',color:'#f5a623'}}>Analyzing opportunities. Wait ~30 seconds.</span>}{!oppLoading && scoreLoading && <span className="save-indicator" style={{marginLeft:'.5rem',fontSize:'.72rem',color:'#888'}}>Scoring your canvas. Wait ~15 seconds.</span>}</div>
+            <div className="stitle">Lean Canvas - {p.bizName}{(oppLoading || oppLoading2) && <span className="save-indicator" style={{marginLeft:'.5rem',fontSize:'.72rem',color:'#f5a623'}}>Analyzing opportunities. Wait ~30 seconds.</span>}{!oppLoading && !oppLoading2 && scoreLoading && <span className="save-indicator" style={{marginLeft:'.5rem',fontSize:'.72rem',color:'#888'}}>Scoring your canvas. Wait ~15 seconds.</span>}</div>
             <div className="canvas">
               {CELLS.map(c => (
                 <div key={c.k} className="cc">
@@ -1268,6 +1292,7 @@ PainPoints:${p.painPoints}`;
                             </div>
                           ))}
                         </div>
+                        {oppLoading2 && <div className="loader" style={{marginTop:'1rem'}}><div className="lbar"/><div className="llbl">Finishing the last 5 sections. Wait ~30 seconds more.</div></div>}
                       ))}
                     </>
             }
