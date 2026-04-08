@@ -103,7 +103,10 @@ export default function LandingPage({ onSignIn }) {
             <div className="lp-eyebrow">Your AI Chief Strategy Officer</div>
             <h1 className="lp-h1">Every great business<br/>has a <span>strategist.</span><br/>Now yours does too.</h1>
             <p className="lp-hero-sub">Most small business owners are exceptional operators without anyone in their corner thinking strategically about where the business is going. TradeStack fills that role — without the consultant fees.</p>
-            <button className="lp-cta" onClick={onSignIn}>Sign Up / Login</button>
+            <div style={{display:'flex',flexDirection:'column',gap:'.75rem',alignItems:'flex-start'}}>
+              <button className="lp-cta" onClick={onSignIn}>Sign Up / Login</button>
+              <a href="/demo" className="lp-cta lp-cta--ghost" style={{display:'inline-block',textDecoration:'none',fontSize:'.78rem',padding:'.75rem 1.5rem'}}>Try Demo — No signup needed</a>
+            </div>
             <p className="lp-hero-note">No credit card required. Takes about three minutes to set up.</p>
           </div>
         </section>

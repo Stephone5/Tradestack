@@ -1,6 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from './supabaseClient';
 import LandingPage from './components/LandingPage';
+import { DEMO_PROFILE, DEMO_CANVAS, DEMO_SCORES, DEMO_OPPORTUNITIES, DEMO_GOAL, DEMO_GOAL_STEPS } from './demoData';
+
+
  
 // -- HELPERS ----------------------------------------------------------------
 function jp(text) {
@@ -597,7 +600,7 @@ export default function App() {
  
  
   // -- CONTEXT STRING FOR AI -------------------------------------------------
-  const ctx = () => `Business:${p.bizName}
+  const ctx = () => `Business:${IS_DEMO ? p.bizName : p.bizName}
 Trade:${p.trade}
 Location:${p.location}
 Years:${p.yearsOp}
@@ -1367,7 +1370,7 @@ PainPoints:${p.painPoints}`;
                   </div>
                   <p className="days-hint">Enter the number of days (X) from the previous step you would like to receive a text reminder for that goal.</p>
  
-                  {goals.length === 0
+                  {demoGoals.length === 0
                     ? <div className="empty">
                         <p>No goals yet.</p>
                         <p style={{marginTop:'.5rem'}}>Go to the Opportunities tab and click "Make it a Goal" on any card.</p>
