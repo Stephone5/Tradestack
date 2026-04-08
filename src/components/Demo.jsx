@@ -236,12 +236,14 @@ textarea{resize:vertical;min-height:80px;}
 .toggle input:checked + .toggle-slider{background:#f5a623;}
 .toggle input:checked + .toggle-slider:before{transform:translateX(16px);background:#0e0e0e;}
 
-/* DEMO TOUR MODAL */
-.demo-overlay{position:fixed;inset:0;background:rgba(0,0,0,.80);z-index:600;display:flex;align-items:center;justify-content:center;padding:1.25rem;}
-.demo-modal{background:#141414;border:1px solid #2a2a2a;border-top:3px solid #f5a623;border-radius:3px;max-width:500px;width:100%;padding:1.75rem 1.75rem 1.5rem;}
-.demo-modal-eyebrow{font-family:'Barlow Condensed',sans-serif;font-size:.65rem;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:#f5a623;margin-bottom:.65rem;}
-.demo-modal-title{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:1.45rem;letter-spacing:.04em;text-transform:uppercase;color:#e8e0d4;margin-bottom:.85rem;line-height:1.15;}
-.demo-modal-body{font-size:.95rem;color:#888;line-height:1.7;margin-bottom:1.4rem;}
+/* DEMO TOUR TOOLTIP */
+.demo-tip{position:fixed;top:52px;left:0;right:0;z-index:600;background:#1a1a1a;border-bottom:2px solid #f5a623;box-shadow:0 4px 24px rgba(0,0,0,.5);max-height:33vh;overflow-y:auto;animation:slidedown .2s ease;}
+@keyframes slidedown{from{transform:translateY(-100%);}to{transform:translateY(0);}}
+.demo-tip-inner{padding:.85rem 1rem .75rem;max-width:600px;margin:0 auto;}
+.demo-tip-eyebrow{font-family:'Barlow Condensed',sans-serif;font-size:.6rem;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:#f5a623;margin-bottom:.3rem;}
+.demo-tip-title{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:1rem;letter-spacing:.04em;text-transform:uppercase;color:#e8e0d4;margin-bottom:.4rem;line-height:1.15;}
+.demo-tip-body{font-size:.82rem;color:#888;line-height:1.6;margin-bottom:.65rem;}
+.demo-tip-row{display:flex;align-items:center;gap:.75rem;}
 .demo-badge{font-family:'Barlow Condensed',sans-serif;font-size:.65rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;background:#c0392b;color:#fff;padding:.16rem .48rem;border-radius:2px;margin-left:.6rem;vertical-align:middle;}
 
 /* MISC */
@@ -250,8 +252,9 @@ textarea{resize:vertical;min-height:80px;}
 
 export default function Demo() {
   const [tab, setTab] = useState("input");
-  const [activeModal, setActiveModal] = useState("input");
-  const [goalsSeen, setGoalsSeen] = useState(false);
+  const [activeTip, setActiveTip] = useState("input");
+  // Track which tabs have already shown their tooltip
+  const [seen, setSeen] = useState({ input: false, canvas: false, opportunities: false, goals: false });
 
   const scoreClass = (score) => {
     if (score == null) return "score-none";
@@ -267,66 +270,44 @@ export default function Demo() {
 
   const goToTab = (newTab) => {
     setTab(newTab);
-    if (newTab === "goals" && !goalsSeen) {
-      setGoalsSeen(true);
-      setActiveModal("goals");
+    // Only show tooltip if this tab hasn't been seen yet
+    if (!seen[newTab]) {
+      setActiveTip(newTab);
+    } else {
+      setActiveTip(null);
     }
   };
 
-  // -- MODAL HANDLERS -------------------------------------------------------
-  const handleInputModalBtn = () => {
-    setActiveModal(null);
-    setTab("canvas");
-    setTimeout(() => setActiveModal("canvas"), 80);
+  const dismissTip = () => {
+    setSeen(prev => ({ ...prev, [tab]: true }));
+    setActiveTip(null);
   };
 
-  const handleCanvasModalBtn = () => {
-    setActiveModal(null);
-    setTab("opportunities");
-    setTimeout(() => setActiveModal("opportunities"), 80);
-  };
-
-  const handleOpportunitiesModalBtn = () => {
-    setActiveModal(null);
-  };
-
-  const handleGoalsModalBtn = () => {
-    setActiveModal(null);
-  };
-
-  // -- TOUR MODALS ----------------------------------------------------------
-  const MODALS = {
+  // -- TOUR TIPS ----------------------------------------------------------
+  const TIPS = {
     input: {
-      eyebrow: "Step 1 of 4",
+      eyebrow: "Step 1 of 4 — Input",
       title: "This is where it starts.",
       body: "Every business owner fills in their details here — what they do, where they are, and their financials. In the real app, you'd enter your own numbers. TradeStack's AI reads this and builds everything else from it. We've filled this in for Centre County Lawn & Landscape so you can see what comes next.",
-      btn: "Show me the Canvas →",
-      onBtn: handleInputModalBtn,
     },
     canvas: {
-      eyebrow: "Step 2 of 4",
+      eyebrow: "Step 2 of 4 — Canvas",
       title: "Your Lean Canvas — scored by AI.",
-      body: "TradeStack takes your inputs and maps them to a Lean Canvas — a one-page business model framework used by startups and investors. The AI scores each section based on how strong your strategy is and where the biggest opportunities are hiding. In the real app, the AI builds this for you in about 45 seconds.",
-      btn: "Show me the Opportunities →",
-      onBtn: handleCanvasModalBtn,
+      body: "TradeStack maps your inputs to a Lean Canvas and scores each section. The AI grades how strong your strategy is and where the biggest opportunities are hiding. In the real app, this builds in about 45 seconds.",
     },
     opportunities: {
-      eyebrow: "Step 3 of 4",
+      eyebrow: "Step 3 of 4 — Opportunities",
       title: "Where the money is.",
-      body: "These opportunity cards are generated by AI from your canvas and financials — showing exactly where you can make more money or stop wasting it. Each card shows the impact level and a specific insight with numbers. In the real app, these are fully personalized to YOUR business. Click 'Make it a Goal' on any card to see the next step.",
-      btn: "Got it →",
-      onBtn: handleOpportunitiesModalBtn,
+      body: "AI-generated cards from your canvas and financials — showing exactly where you can make more money or stop wasting it. In the real app, these are fully personalized to YOUR business. Click 'Make it a Goal' on any card.",
     },
     goals: {
-      eyebrow: "Step 4 of 4",
+      eyebrow: "Step 4 of 4 — Goals",
       title: "From insight to action.",
-      body: "When you click 'Make it a Goal' on an opportunity, TradeStack's AI builds a step-by-step action plan with time estimates and dollar values. It takes about 20 seconds to generate. You can track progress on each step, mark them complete, and even turn on daily SMS reminders at 8pm to keep you moving. The 'Money Unlocked' counter adds up every goal you complete.",
-      btn: "Got it",
-      onBtn: handleGoalsModalBtn,
+      body: "TradeStack's AI builds a step-by-step action plan with time estimates and dollar values — takes about 20 seconds to generate. Track each step, mark them complete, enable daily SMS reminders at 8pm. The 'Money Unlocked' counter grows as you complete goals.",
     },
   };
 
-  const currentModal = activeModal ? MODALS[activeModal] : null;
+  const currentTip = activeTip ? TIPS[activeTip] : null;
 
   const TABS = [
     { id: "input",         l: "Input" },
@@ -675,20 +656,22 @@ export default function Demo() {
         </div>{/* end .pg */}
       </div>
 
-      {/* -- TOUR MODAL ----------------------------------------------------- */}
-      {currentModal && (
-        <div className="demo-overlay">
-          <div className="demo-modal" style={{ animation: "fadein .2s ease" }}>
-            <div className="demo-modal-eyebrow">{currentModal.eyebrow}</div>
-            <div className="demo-modal-title">{currentModal.title}</div>
-            <div className="demo-modal-body">{currentModal.body}</div>
-            <button
-              className="btn bp"
-              style={{ width: "100%", fontSize: ".88rem" }}
-              onClick={currentModal.onBtn}
-            >
-              {currentModal.btn}
-            </button>
+      {/* -- TOUR TOOLTIP --------------------------------------------------- */}
+      {currentTip && (
+        <div className="demo-tip">
+          <div className="demo-tip-inner">
+            <div className="demo-tip-eyebrow">{currentTip.eyebrow}</div>
+            <div className="demo-tip-title">{currentTip.title}</div>
+            <div className="demo-tip-body">{currentTip.body}</div>
+            <div className="demo-tip-row">
+              <button
+                className="btn bp"
+                style={{ width: "auto", fontSize: ".78rem", padding: ".5rem 1.25rem" }}
+                onClick={dismissTip}
+              >
+                Got it
+              </button>
+            </div>
           </div>
         </div>
       )}
