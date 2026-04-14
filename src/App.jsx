@@ -1039,7 +1039,7 @@ PainPoints:${p.painPoints}`;
   const TABS = [
     { id:"input",         l:"Input" },
     { id:"canvas",        l:"Canvas",        lock:!fullySubmitted },
-    { id:"opportunities", l:"Opportunities", lock:!fullySubmitted || (oppLoading || oppLoading2), premium:true, loading: oppLoading || oppLoading2 },
+    { id:"opportunities", l:"Opportunities", lock:!fullySubmitted || oppLoading || oppLoading2 || opps.length === 0, premium:true, loading: oppLoading || oppLoading2 },
     { id:"goals",         l:"Goals",         lock:!fullySubmitted, premium:true },
   ];
 
