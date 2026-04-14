@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from './supabaseClient';
 import LandingPage from './components/LandingPage';
-import { DEMO_PROFILE, DEMO_CANVAS, DEMO_SCORES, DEMO_OPPORTUNITIES, DEMO_GOAL, DEMO_GOAL_STEPS } from './demoData';
+
 
 
 
@@ -278,13 +278,13 @@ export default function App() {
   const profileLoaded  = useRef(false);
   const canvasEdited   = useRef(false);  // true only when user manually edits a canvas cell
   const justMigrated   = useRef(null);   // canvas_cell key of the opp just migrated
+  const canvasSaveTimer = useRef({});    // per-cell debounce timers
   const [regeneratingOpp, setRegeneratingOpp] = useState(null);
   const [enrichingGoals, setEnrichingGoals] = useState(new Set()); // goal IDs being enriched by AI // opp id being regenerated
 
   // -- CANVAS --------------------------------------------------------------
   const [canvas,       setCanvas]       = useState({});
   const [canvasScores, setCanvasScores] = useState({});
-  const [cLoading,     setCLoading]     = useState(false);
   const [scoreLoading, setScoreLoading] = useState(false);
   const [scoreTooltip, setScoreTooltip] = useState(null); // {key, x, y}
 
@@ -308,7 +308,6 @@ export default function App() {
   // -- STRIPE CHECKOUT ------------------------------------------------------
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [checkoutError,   setCheckoutError]   = useState(null);
-  const [pendingUpgrade,  setPendingUpgrade]  = useState(false);
   const [legalAcknowledged, setLegalAcknowledged] = useState(false);
   const [showLegalModal,    setShowLegalModal]    = useState(false); // false | 'upgrade' | 'view'
 
@@ -584,24 +583,22 @@ export default function App() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canvas, session, submitted]);
 
-  // -- SAFETY NET: generate opportunities for FIRST-TIME users only -------------
-  // Only fires once ever: user has zero opps, zero goals, and has canvas content.
-  // After first generation, this never fires again.
+  // -- SAFETY NET: generate opportunities if user has canvas but zero opps ---
+  // Only fires on the Opportunities tab, not Goals (Goals tab is locked until opps exist).
   useEffect(() => {
-    if (tab !== 'opportunities' && tab !== 'goals') return;
+    if (tab !== 'opportunities') return;
     if (!session || !submitted) return;
     if (oppLoading) return;
     if (opps.length > 0) return;
-    if (goals.length > 0) return; // User migrated before - not a new user
     const hasContent = CELLS.some(c => canvas[c.k]);
     if (!hasContent) return;
     genOpportunities(canvas);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab, session, submitted, oppLoading, opps.length, goals.length]);
+  }, [tab, session, submitted, oppLoading, opps.length]);
 
 
   // -- CONTEXT STRING FOR AI -------------------------------------------------
-  const ctx = () => `Business:${IS_DEMO ? p.bizName : p.bizName}
+  const ctx = () => `Business:${p.bizName}
 Trade:${p.trade}
 Location:${p.location}
 Years:${p.yearsOp}
@@ -612,31 +609,6 @@ OpEx:$${p.opEx}
 NetIncome:$${p.netIncome}
 TopService:${p.topService}
 PainPoints:${p.painPoints}`;
-
-  // -- GENERATE CANVAS -------------------------------------------------------
-  const genCanvas = async () => {
-    setCLoading(true);
-    try {
-      const data = await callEdge('claude-proxy', {
-        system: `You are a business strategist for small trades businesses. Return ONLY valid JSON with keys: problem,solution,uvp,unfair,segments,metrics,channels,revenue,cost. Each value: 2-4 bullet points using the bullet character. Max 400 chars per value. No markdown.`,
-        user: `Build a lean canvas for this business:\n${ctx()}`
-      }, session);
-      const parsed = jp(data?.text || '{}');
-      if (!parsed) { setCLoading(false); return; }
-      setCanvas(parsed);
-      // Save all cells to Supabase
-      const rows = CELLS.map(c => ({
-        user_id:    session.user.id,
-        cell_key:   c.k,
-        content:    parsed[c.k] || '',
-        updated_at: new Date().toISOString(),
-      }));
-      await supabase.from('canvas_cells').upsert(rows, { onConflict: 'user_id,cell_key' });
-      // Generate opportunities first, then scores chain automatically
-      genOpportunities(parsed);
-    } catch(e) { console.error('Canvas error:', e); }
-    setCLoading(false);
-  };
 
   // -- GENERATE CANVAS SCORES ------------------------------------------------
   // Scores are derived from opportunities + input data. Never called independently.
@@ -801,16 +773,19 @@ PainPoints:${p.painPoints}`;
     genOpportunities(canvas);
   };
 
-  // -- SAVE CANVAS CELL EDIT -------------------------------------------------
-  const saveCanvasCell = useCallback(async (key, value) => {
+  // -- SAVE CANVAS CELL EDIT (debounced 800ms per cell) ---------------------
+  const saveCanvasCell = useCallback((key, value) => {
     canvasEdited.current = true;
     setCanvas(prev => ({ ...prev, [key]: value }));
-    await supabase.from('canvas_cells').upsert({
-      user_id:    session.user.id,
-      cell_key:   key,
-      content:    value,
-      updated_at: new Date().toISOString(),
-    }, { onConflict: 'user_id,cell_key' });
+    clearTimeout(canvasSaveTimer.current[key]);
+    canvasSaveTimer.current[key] = setTimeout(async () => {
+      await supabase.from('canvas_cells').upsert({
+        user_id:    session.user.id,
+        cell_key:   key,
+        content:    value,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'user_id,cell_key' });
+    }, 800);
   }, [session]);
 
   // -- MIGRATE OPPORTUNITY -> GOAL (non-blocking) --------------------------------
@@ -1350,7 +1325,7 @@ PainPoints:${p.painPoints}`;
                     <span className="mu-label">Money Unlocked</span>
                     <span className="mu-value">${moneyUnlocked.toLocaleString()}</span>
                   </div>
-                  <p className="days-hint">Enter the number of days (X) from the previous step you would like to receive a text reminder for that goal.</p>
+
 
                   {goals.length === 0
                     ? <div className="empty">
@@ -1468,6 +1443,16 @@ PainPoints:${p.painPoints}`;
           <button className="legal-pg-link" onClick={() => setShowLegalModal('view')}>Legal</button>
 
         </div>{/* end .pg */}
+
+        {/* -- SCORE TOOLTIP ----------------------------------------------- */}
+        {scoreTooltip && (
+          <div className="score-tip" style={{left: scoreTooltip.x, top: scoreTooltip.y}}>
+            <strong>{scoreTooltip.key}</strong>
+            {canvasScores[scoreTooltip.key]?.score != null ? `Score: ${canvasScores[scoreTooltip.key].score}/100` : ''}
+            {canvasScores[scoreTooltip.key]?.preview ? ` — ${canvasScores[scoreTooltip.key].preview}` : ''}
+            <div style={{fontSize:'.78rem',color:'#666',marginTop:'.3rem'}}>Upgrade to see full opportunities for this cell.</div>
+          </div>
+        )}
 
         {/* -- CONTACT SUPPORT BUBBLE ------------------------------------- */}
         <div className="cs-bubble">
