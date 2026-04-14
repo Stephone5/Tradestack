@@ -1176,7 +1176,7 @@ PainPoints:${p.painPoints}`;
                 onClick={submit}
                 disabled={!p.bizName || !p.trade || !p.location || !p.yearsOp || !p.employees || !p.topService || !p.annualRev || !p.cogs || !p.opEx || !p.netIncome || !p.painPoints || !CELLS.every(c => canvas[c.k]?.trim()) || oppLoading}
               >
-                {oppLoading ? 'Building your strategy. Wait ~45 seconds.' : 'Save & View Canvas'}
+                {oppLoading ? 'Building your strategy. Wait ~45 seconds.' : fullySubmitted ? 'View Canvas' : 'Save & View Canvas'}
               </button>
             </div>
             {(!p.bizName || !p.trade || !p.location || !p.yearsOp || !p.employees || !p.topService || !p.annualRev || !p.cogs || !p.opEx || !p.netIncome || !p.painPoints || !CELLS.every(c => canvas[c.k]?.trim())) && <p style={{fontSize:'.78rem',color:'#888',marginTop:'.5rem',textAlign:'right'}}>Fill in all fields above to continue.</p>}
