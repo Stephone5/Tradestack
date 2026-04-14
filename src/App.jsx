@@ -1042,7 +1042,7 @@ PainPoints:${p.painPoints}`;
   const TABS = [
     { id:"input",         l:"Input" },
     { id:"canvas",        l:"Canvas",        lock:!submitted },
-    { id:"opportunities", l:"Opportunities", lock:!submitted, premium:true },
+    { id:"opportunities", l:"Opportunities", lock:!submitted || (oppLoading || oppLoading2), premium:true, loading: oppLoading || oppLoading2 },
     { id:"goals",         l:"Goals",         lock:!submitted, premium:true },
   ];
  
@@ -1067,8 +1067,9 @@ PainPoints:${p.painPoints}`;
               onClick={() => !t.lock && setTab(t.id)}
             >
               {t.l}
-              {t.lock && <span className="tab-lock">lock</span>}
-              {!t.lock && t.premium && !isPremium && <span className="tab-lock">pro</span>}
+              {t.lock && !t.loading && <span className="tab-lock">lock</span>}
+              {t.loading && <span className="tab-lock" style={{background:'#f5a623',color:'#000'}}>...</span>}
+              {!t.lock && !t.loading && t.premium && !isPremium && <span className="tab-lock">pro</span>}
             </button>
           ))}
         </div>
@@ -1269,8 +1270,8 @@ PainPoints:${p.painPoints}`;
                 ? <div className="loader"><div className="lbar"/><div className="llbl">Your Chief Strategy Officer is writing up his report. Wait ~30 seconds.</div></div>
                 : opps.length === 0
                   ? <div className="empty">
-                      <p>No opportunities yet.</p>
-                      <p style={{marginTop:'.5rem'}}>Go to the Input tab and hit "Save & View Canvas" to generate your first set.</p>
+                      <p style={{marginBottom:'1rem'}}>No opportunities generated yet.</p>
+                      <button className="btn bp" style={{width:'auto'}} onClick={() => genOpportunities(canvas)}>Generate Now</button>
                     </div>
                   : <>
                       {Object.entries(groupedOpps).map(([key, group]) => (
