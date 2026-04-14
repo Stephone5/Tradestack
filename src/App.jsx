@@ -1254,12 +1254,7 @@ PainPoints:${p.painPoints}`;
                 </div>
               : oppLoading
                 ? <div className="loader"><div className="lbar"/><div className="llbl">Your Chief Strategy Officer is writing up his report. Wait ~30 seconds.</div></div>
-                : opps.length === 0
-                  ? <div className="empty">
-                      <p style={{marginBottom:'1rem'}}>No opportunities generated yet.</p>
-                      <button className="btn bp" style={{width:'auto'}} onClick={() => genOpportunities(canvas)}>Generate Now</button>
-                    </div>
-                  : <>
+                : <>
                       {Object.entries(groupedOpps).map(([key, group]) => (
                         <div key={key} className="opp-section">
                           <div className="opp-section-title">{group.label}</div>
@@ -1357,7 +1352,7 @@ PainPoints:${p.painPoints}`;
                   </div>
                   <p className="days-hint">Enter the number of days (X) from the previous step you would like to receive a text reminder for that goal.</p>
 
-                  {demoGoals.length === 0
+                  {goals.length === 0
                     ? <div className="empty">
                         <p>No goals yet.</p>
                         <p style={{marginTop:'.5rem'}}>Go to the Opportunities tab and click "Make it a Goal" on any card.</p>
