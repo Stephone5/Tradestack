@@ -212,6 +212,20 @@ textarea{resize:vertical;min-height:80px;}
 .toggle input:checked + .toggle-slider{background:#f5a623;}
 .toggle input:checked + .toggle-slider:before{transform:translateX(16px);background:#0e0e0e;}
 
+/* GOAL DELETE */
+.goal-delete-btn{background:transparent;border:1px solid #3a1a1a;color:#555;font-family:'Barlow Condensed',sans-serif;font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:.18rem .48rem;border-radius:2px;cursor:pointer;transition:all .15s;flex-shrink:0;}
+.goal-delete-btn:hover{border-color:#e05252;color:#e05252;}
+.goal-confirm-row{display:flex;align-items:center;gap:.5rem;padding:.6rem 0 0;border-top:1px solid #2a1a1a;margin-top:.5rem;flex-wrap:wrap;}
+.goal-confirm-text{font-family:'Barlow Condensed',sans-serif;font-size:.82rem;font-weight:600;letter-spacing:.04em;color:#888;flex:1;min-width:120px;}
+.goal-confirm-yes{background:#3a1a1a;border:1px solid #e05252;color:#e05252;font-family:'Barlow Condensed',sans-serif;font-size:.72rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:.22rem .6rem;border-radius:2px;cursor:pointer;transition:all .15s;}
+.goal-confirm-yes:hover{background:#e05252;color:#fff;}
+.goal-confirm-no{background:transparent;border:1px solid #333;color:#555;font-family:'Barlow Condensed',sans-serif;font-size:.72rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:.22rem .6rem;border-radius:2px;cursor:pointer;transition:border-color .15s;}
+.goal-confirm-no:hover{border-color:#555;color:#888;}
+
+/* CALENDAR BUTTON */
+.cal-btn{background:transparent;border:none;color:#333;font-size:.9rem;cursor:pointer;padding:0 .15rem;line-height:1;transition:color .15s;flex-shrink:0;text-decoration:none;}
+.cal-btn:hover{color:#4caf82;}
+
 /* PREMIUM GATE */
 .premium-gate{background:#141414;border:1px solid #2a2a1a;border-radius:3px;padding:2rem 1.5rem;text-align:center;margin-top:1rem;}
 .pg-eyebrow{font-family:'Barlow Condensed',sans-serif;font-size:.75rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:#f5a623;margin-bottom:.6rem;}
@@ -276,7 +290,7 @@ export default function App() {
   const [autoSaved,    setAutoSaved]    = useState(false);
   const [saveError,    setSaveError]    = useState(null);
   const profileLoaded  = useRef(false);
-  const canvasEdited   = useRef(false);  // true only when user manually edits a canvas cell
+  const canvasEdited   = useRef(new Set());  // tracks which canvas cells were manually edited
   const justMigrated   = useRef(null);   // canvas_cell key of the opp just migrated
   const canvasSaveTimer = useRef({});    // per-cell debounce timers
   const [regeneratingOpp, setRegeneratingOpp] = useState(null);
@@ -297,6 +311,7 @@ export default function App() {
   // -- GOALS ----------------------------------------------------------------
   const [goals,        setGoals]        = useState([]);
   const [goalSteps,    setGoalSteps]    = useState({}); // {goalId: [steps]}
+  const [deletingGoalId, setDeletingGoalId] = useState(null);
 
   // -- CONTACT SUPPORT ------------------------------------------------------
   const [csOpen,       setCsOpen]       = useState(false);
@@ -565,21 +580,52 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [session, p, saveProfile]);
 
-  // -- AUTO-REGEN OPPORTUNITIES + SCORES (debounced 8s after canvas EDIT) --------
-  // ONLY fires when user manually edits a canvas cell, NOT on page load or tab switch.
+  // -- AUTO-REGEN OPPORTUNITIES FOR EDITED CELLS ONLY (debounced 8s) --------
+  // Only fires when user manually edits a canvas cell. Regenerates only that cell's
+  // opportunities — all other cells stay intact.
   useEffect(() => {
     if (!session || !submitted) return;
-    if (!canvasEdited.current) return; // Skip unless user actually edited canvas
+    if (!canvasEdited.current.size) return;
     const hasContent = CELLS.some(c => canvas[c.k]);
     if (!hasContent) return;
-    const timer = setTimeout(() => {
-      canvasEdited.current = false;
-      genOpportunities(canvas);
+
+    const timer = setTimeout(async () => {
+      const editedCells = [...canvasEdited.current];
+      canvasEdited.current.clear();
+
+      for (const cellKey of editedCells) {
+        // Remove only this cell's unmigrated opps from DB + local state
+        await supabase.from('opportunities')
+          .delete()
+          .eq('user_id', session.user.id)
+          .eq('canvas_cell', cellKey)
+          .eq('migrated', false);
+        setOpps(prev => prev.filter(o => !(o.canvas_cell === cellKey && !o.migrated)));
+
+        try {
+          const data = await callEdge('claude-proxy', {
+            system: `You are a revenue and efficiency consultant for small trades businesses. Generate exactly 2 opportunity cards for the "${cellKey}" canvas cell showing how this business can make more money or stop wasting money there. Return ONLY valid JSON array: [{"canvas_cell":"${cellKey}","title":"string","insight":"string (2-3 sentences, specific and actionable)","impact_label":"High"|"Medium"|"Low"}].`,
+            user: `${ctx()}\n\nCanvas "${cellKey}": ${canvas[cellKey] || ''}\n\nFull canvas:\n${JSON.stringify(canvas)}`
+          }, session);
+          const parsed = jp(data?.text || '[]');
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const rows = parsed.slice(0, 2).map((opp, i) => ({
+              user_id:      session.user.id,
+              canvas_cell:  cellKey,
+              title:        opp.title,
+              insight:      opp.insight,
+              impact_label: opp.impact_label || 'Medium',
+              migrated:     false,
+              sort_order:   Date.now() + i,
+            }));
+            const { data: inserted } = await supabase.from('opportunities').insert(rows).select();
+            if (inserted) setOpps(prev => [...prev, ...inserted]);
+          }
+        } catch(e) { console.error('Cell regen error:', e); }
+      }
     }, 8000);
-    return () => {
-      clearTimeout(timer);
-      // Do NOT reset canvasEdited here - let it persist so the next effect run picks it up
-    };
+
+    return () => clearTimeout(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canvas, session, submitted]);
 
@@ -775,7 +821,7 @@ PainPoints:${p.painPoints}`;
 
   // -- SAVE CANVAS CELL EDIT (debounced 800ms per cell) ---------------------
   const saveCanvasCell = useCallback((key, value) => {
-    canvasEdited.current = true;
+    canvasEdited.current.add(key);
     setCanvas(prev => ({ ...prev, [key]: value }));
     clearTimeout(canvasSaveTimer.current[key]);
     canvasSaveTimer.current[key] = setTimeout(async () => {
@@ -950,6 +996,32 @@ PainPoints:${p.painPoints}`;
   // -- TOGGLE SMS FOR GOAL ---------------------------------------------------
   const toggleGoalSMS = async (goalId, current) => {
     await updateGoalField(goalId, 'sms_enabled', !current);
+  };
+
+  // -- DELETE GOAL (two-step: button -> confirm -> delete) ------------------
+  const deleteGoal = async (goalId) => {
+    await supabase.from('goal_steps').delete().eq('goal_id', goalId);
+    await supabase.from('goals').delete().eq('id', goalId);
+    setGoals(prev => prev.filter(g => g.id !== goalId));
+    setGoalSteps(prev => { const n = {...prev}; delete n[goalId]; return n; });
+    setDeletingGoalId(null);
+  };
+
+  // -- GOOGLE CALENDAR URL HELPER -------------------------------------------
+  const gcalUrl = (step, goal) => {
+    const today = new Date();
+    const startDate = step.days_to_complete
+      ? new Date(today.getTime() + step.days_to_complete * 86400000)
+      : today;
+    const endDate = new Date(startDate.getTime() + 86400000);
+    const fmt = d => d.toISOString().slice(0, 10).replace(/-/g, '');
+    const params = new URLSearchParams({
+      action: 'TEMPLATE',
+      text: step.step_text.slice(0, 100),
+      details: `Goal: ${goal.title}`,
+      dates: `${fmt(startDate)}/${fmt(endDate)}`,
+    });
+    return `https://calendar.google.com/calendar/render?${params}`;
   };
 
   // -- CONTACT SUPPORT -------------------------------------------------------
@@ -1357,6 +1429,9 @@ PainPoints:${p.painPoints}`;
                                     value={goal.title}
                                     onChange={e => updateGoalField(goal.id, 'title', e.target.value)}
                                   />
+                                  {goal.status === 'completed' && deletingGoalId !== goal.id && (
+                                    <button className="goal-delete-btn" onClick={() => setDeletingGoalId(goal.id)}>Delete</button>
+                                  )}
                                 </div>
                                 <div className="goal-meta">
                                   <span className={`goal-status ${statusClass}`}>{statusLabel}</span>
@@ -1398,6 +1473,13 @@ PainPoints:${p.painPoints}`;
                                           value={step.days_to_complete ?? ''}
                                           onChange={e => updateStepDays(goal.id, step.id, e.target.value)}
                                         />
+                                        <a
+                                          className="cal-btn"
+                                          href={gcalUrl(step, goal)}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          title="Add to Google Calendar"
+                                        >📅</a>
                                       </div>
                                     ))}
                                   </div>
@@ -1415,6 +1497,14 @@ PainPoints:${p.painPoints}`;
                                     <span className="toggle-slider"/>
                                   </label>
                                 </div>
+                                {/* Delete Confirmation */}
+                                {deletingGoalId === goal.id && (
+                                  <div className="goal-confirm-row">
+                                    <span className="goal-confirm-text">Delete this goal permanently?</span>
+                                    <button className="goal-confirm-yes" onClick={() => deleteGoal(goal.id)}>Yes, Delete</button>
+                                    <button className="goal-confirm-no" onClick={() => setDeletingGoalId(null)}>Cancel</button>
+                                  </div>
+                                )}
                               </div>
                             );
                           })}
