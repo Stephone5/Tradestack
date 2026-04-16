@@ -883,7 +883,7 @@ PainPoints:${p.painPoints}`;
         } catch(e) { console.error('Value estimate error:', e); }
         try {
           const stepsData = await callEdge('claude-proxy', {
-            system: `You are an execution coach for small business owners. Generate 3-6 specific, actionable steps to achieve this goal. Return ONLY valid JSON array: [{"step_text":"string"}]`,
+            system: `You are an execution coach for small business owners. Generate 3-6 specific, actionable steps to achieve this goal. Format each step as: "Short Title: detailed explanation of how to complete this step." The title (before the colon) must be 4-5 words max and act as a clear action label. The description (after the colon) should be specific and actionable. Return ONLY valid JSON array: [{"step_text":"string"}]`,
             user: `Goal: ${opp.title}\nContext: ${opp.insight}\n\nBusiness:\n${ctx()}`
           }, session);
           const steps = jp(stepsData?.text || '[]');
@@ -1015,10 +1015,17 @@ PainPoints:${p.painPoints}`;
       : today;
     const endDate = new Date(startDate.getTime() + 86400000);
     const fmt = d => d.toISOString().slice(0, 10).replace(/-/g, '');
+    const colonIdx = step.step_text.indexOf(':');
+    const eventTitle = colonIdx > -1
+      ? step.step_text.slice(0, colonIdx).trim()
+      : step.step_text.slice(0, 60).trim();
+    const eventDetails = colonIdx > -1
+      ? `${step.step_text.slice(colonIdx + 1).trim()}\n\nGoal: ${goal.title}`
+      : `Goal: ${goal.title}`;
     const params = new URLSearchParams({
       action: 'TEMPLATE',
-      text: step.step_text.slice(0, 100),
-      details: `Goal: ${goal.title}`,
+      text: eventTitle,
+      details: eventDetails,
       dates: `${fmt(startDate)}/${fmt(endDate)}`,
     });
     return `https://calendar.google.com/calendar/render?${params}`;
