@@ -76,13 +76,14 @@ Deno.serve(async (req) => {
     // Create checkout session with 7-day free trial
     console.log('Creating checkout session — price:', STRIPE_PRICE_ID, 'customer:', customerId);
     const checkoutSession = await stripe.checkout.sessions.create({
-      customer:    customerId,
-      mode:        'subscription',
-      line_items:  [{ price: STRIPE_PRICE_ID, quantity: 1 }],
-      success_url: APP_URL + '/?checkout=success',
-      cancel_url:  APP_URL + '/?checkout=canceled',
-      metadata:    { user_id: user.id },
-      subscription_data: { trial_period_days: 7, metadata: { user_id: user.id } },
+      customer:             customerId,
+      mode:                 'subscription',
+      line_items:           [{ price: STRIPE_PRICE_ID, quantity: 1 }],
+      success_url:          APP_URL + '/?checkout=success',
+      cancel_url:           APP_URL + '/?checkout=canceled',
+      metadata:             { user_id: user.id },
+      allow_promotion_codes: true,
+      subscription_data:    { trial_period_days: 7, metadata: { user_id: user.id } },
     });
 
     console.log('Checkout session created:', checkoutSession.id);
