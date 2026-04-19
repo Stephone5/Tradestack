@@ -1073,7 +1073,7 @@ PainPoints:${p.painPoints}`;
               <div style={{background:'#141414',border:'1px solid #2a2a1a',borderRadius:'3px',padding:'.85rem 1rem',marginTop:'1rem',display:'flex',justifyContent:'space-between',alignItems:'center',gap:'1rem',flexWrap:'wrap'}}>
                 <div>
                   <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:'.75rem',fontWeight:700,letterSpacing:'.16em',textTransform:'uppercase',color:'#f5a623',marginBottom:'.2rem'}}>7-Day Free Trial</div>
-                  <div style={{fontSize:'.92rem',color:'#666'}}>Unlock Opportunities, Goals, and SMS reminders. Free for 7 days, then $9.98/month.</div>
+                  <div style={{fontSize:'.92rem',color:'#666'}}>Unlock Opportunities, Goals, and SMS reminders. Free for 7 days, then $14.95/month.</div>
                   {checkoutError && <div style={{fontSize:'.85rem',color:'#e05252',marginTop:'.3rem'}}>{checkoutError}</div>}
                 </div>
                 <button className="btn bp" style={{width:'auto',whiteSpace:'nowrap'}} onClick={handleUpgrade} disabled={checkoutLoading}>{checkoutLoading ? 'Redirecting...' : 'Start 7-Day Free Trial'}</button>

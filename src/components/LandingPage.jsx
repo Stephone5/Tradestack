@@ -181,7 +181,7 @@ export default function LandingPage({ onSignIn }) {
               </div>
               <div className="lp-plan lp-plan--premium">
                 <div className="lp-plan-label">Premium</div>
-                <div className="lp-plan-price">$9.98 <span>/ month after 7-day trial</span></div>
+                <div className="lp-plan-price">$14.95 <span>/ month after 7-day trial</span></div>
                 <ul className="lp-plan-items">
                   <li>Every money leak in your business, named and ranked</li>
                   <li>Every revenue opportunity you haven't touched yet</li>
