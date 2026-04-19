@@ -308,6 +308,11 @@ export default function App() {
   const startCheckout = async () => {
     setCheckoutLoading(true);
     setCheckoutError(null);
+    if (!session?.access_token) {
+      setCheckoutError('Please sign in first before upgrading.');
+      setCheckoutLoading(false);
+      return;
+    }
     try {
       sessionStorage.setItem('ts_pre_checkout_tab', tab);
       const data = await callEdge('create-checkout', {}, session);
