@@ -35,29 +35,48 @@ Deno.serve(async (req) => {
 
     // Verify user — JWT is automatically verified by Supabase (no --no-verify-jwt)
     const authHeader = req.headers.get('Authorization');
+    console.log('[create-checkout] Auth header present:', !!authHeader);
+    console.log('[create-checkout] SUPABASE_ANON_KEY available:', !!SUPABASE_ANON_KEY);
+
     if (!authHeader) {
-      console.error('No Authorization header');
+      console.error('[create-checkout] No Authorization header');
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    // Create an authenticated Supabase client with the user's JWT for auth verification
-    const authClient = createClient(SUPABASE_URL!, SUPABASE_ANON_KEY!);
-    const { data: { user }, error } = await authClient.auth.getUser(authHeader.replace('Bearer ', ''));
+    // Decode JWT to extract user ID (simple JWT structure: header.payload.signature)
+    const token = authHeader.replace('Bearer ', '');
+    console.log('[create-checkout] Token length:', token.length);
 
-    if (error || !user) {
-      console.error('Auth failed:', error?.message || 'no user found');
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+    let user_id: string | null = null;
+    try {
+      const parts = token.split('.');
+      if (parts.length !== 3) throw new Error('Invalid JWT format');
+
+      // Decode payload (second part)
+      const payload = JSON.parse(atob(parts[1]));
+      user_id = payload.sub; // 'sub' is the standard JWT claim for user ID
+      console.log('[create-checkout] Decoded user_id:', user_id);
+    } catch(decodeErr) {
+      console.error('[create-checkout] Failed to decode JWT:', decodeErr.message);
+      return new Response(JSON.stringify({ error: 'Invalid token format' }), {
         status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    console.log('Checkout request from user:', user.id, user.email);
+    if (!user_id) {
+      console.error('[create-checkout] No user_id in token');
+      return new Response(JSON.stringify({ error: 'Invalid token' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    console.log('Checkout request from user:', user_id);
 
     // Check if already subscribed
     const { data: sub } = await supabase.from('subscriptions')
-      .select('status, stripe_customer_id').eq('user_id', user.id).single();
+      .select('status, stripe_customer_id').eq('user_id', user_id).single();
 
     if (sub?.status === 'active') {
       return new Response(JSON.stringify({ error: 'Already subscribed' }), {
@@ -69,8 +88,7 @@ Deno.serve(async (req) => {
     let customerId = sub?.stripe_customer_id;
     if (!customerId) {
       const customer = await stripe.customers.create({
-        email:    user.email,
-        metadata: { user_id: user.id },
+        metadata: { user_id: user_id },
       });
       customerId = customer.id;
       console.log('Created Stripe customer:', customerId);
@@ -84,8 +102,8 @@ Deno.serve(async (req) => {
       line_items:  [{ price: STRIPE_PRICE_ID, quantity: 1 }],
       success_url: APP_URL + '/?checkout=success',
       cancel_url:  APP_URL + '/?checkout=canceled',
-      metadata:    { user_id: user.id },
-      subscription_data: { trial_period_days: 7, metadata: { user_id: user.id } },
+      metadata:    { user_id: user_id },
+      subscription_data: { trial_period_days: 7, metadata: { user_id: user_id } },
     });
 
     console.log('Checkout session created:', checkoutSession.id);
