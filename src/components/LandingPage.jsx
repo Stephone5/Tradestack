@@ -100,10 +100,12 @@ export default function LandingPage({ onSignIn }) {
         {/* HERO */}
         <section className="lp-hero">
           <div className="lp-inner">
-            <div className="lp-eyebrow">Business Intelligence for Small Business</div>
-            <h1 className="lp-h1">You work too hard<br/>to not know <span>where your<br/>money goes.</span></h1>
-            <p className="lp-hero-sub">Most small business owners have no idea which 20% of their effort produces 80% of their results. TradeStack finds it {'\u2014'} in minutes, not months.</p>
-            <button className="lp-cta" onClick={onSignIn}>Sign Up / Login</button>
+            <div className="lp-eyebrow">Your AI Chief Strategy Officer</div>
+            <h1 className="lp-h1">Every great business<br/>has a <span>strategist.</span><br/>Now yours does too.</h1>
+            <p className="lp-hero-sub">Most small business owners are exceptional operators without anyone in their corner thinking strategically about where the business is going. TradeStack fills that role — without the consultant fees.</p>
+            <div style={{display:'flex',flexDirection:'column',gap:'.75rem',alignItems:'flex-start'}}>
+              <a href="/demo" className="lp-cta" style={{display:'inline-block',textDecoration:'none'}}>Try Demo — No Signup Needed</a>
+            </div>
             <p className="lp-hero-note">No credit card required. Takes about three minutes to set up.</p>
           </div>
         </section>
@@ -112,22 +114,21 @@ export default function LandingPage({ onSignIn }) {
         <section className="lp-section">
           <div className="lp-inner">
             <div className="lp-eyebrow">The Problem</div>
-            <h2 className="lp-h2">You didn't start a business to spend your evenings lost in numbers you can't make sense of.</h2>
-            <p className="lp-p">You know something's off. Maybe margins feel thin. Maybe revenue looks fine on paper but the account never quite catches up. Maybe you've thought about getting strategic {'\u2014'} a real plan, not just survival mode {'\u2014'} but between the jobs, the calls, the invoices, and the people, there's never a clean hour to think.</p>
-            <p className="lp-p">And now everyone's talking about AI. Another thing to learn. Another thing to fall behind on.</p>
-            <p className="lp-p"><strong>You're not behind. You just haven't had the right tool yet.</strong></p>
+            <h2 className="lp-h2">You built something real. And it's slowly eating you alive.</h2>
+            <p className="lp-p">The jobs stack up. The calls never stop. You're the one who shows up first and leaves last. And somewhere between the invoices and the payroll and the problem that needs fixing right now — the business stopped being yours.</p>
+            <p className="lp-p">You didn't sign up to feel trapped inside the thing you built. But that's where most small business owners end up. Not because they aren't good enough. Because nobody gave them what the big guys have had all along.</p>
           </div>
         </section>
 
         {/* GUIDE */}
         <section className="lp-section lp-section--alt">
           <div className="lp-inner">
-            <div className="lp-eyebrow">The Guide</div>
+            <div className="lp-eyebrow">The Solution</div>
             <div className="lp-bar"></div>
-            <h2 className="lp-h2">TradeStack was built for exactly where you are.</h2>
-            <p className="lp-p">We took the strategy frameworks that consultants charge thousands of dollars to deliver and made them work from the numbers you already know. No jargon. No three-day workshops. No MBA required.</p>
-            <p className="lp-p">You enter what you know. We show you what it means. You decide what to do about it.</p>
-            <p className="lp-p"><strong>That's it.</strong></p>
+            <h2 className="lp-h2">TradeStack acts as your Chief Strategy Officer — without the salary.</h2>
+            <p className="lp-p">We took the strategy frameworks that Fortune 500 companies pay consultants thousands to deliver and made them work from the numbers you already know. No jargon. No three-day workshops. No MBA required.</p>
+            <p className="lp-p">You enter what you know. Your CSO finds the leaks, spots the opportunities, and builds you a step-by-step plan to act on them.</p>
+            <p className="lp-p"><strong>Strategy isn't just for the big guys anymore.</strong></p>
           </div>
         </section>
 
@@ -202,10 +203,10 @@ export default function LandingPage({ onSignIn }) {
           <div className="lp-inner">
             <div className="lp-eyebrow">The Cost of Not Knowing</div>
             <div className="lp-stakes-quote">
-              <p className="lp-p" style={{marginBottom:0}}>Every month you operate without a clear picture is a month you work harder than you need to. Money leaks quietly. Margins erode. Growth opportunities sit right next to you, unrecognized.</p>
+              <p className="lp-p" style={{marginBottom:0}}>Every month you operate without a clear strategy is a month you work harder than you need to. Money leaks quietly. Margins erode. Growth opportunities sit right next to you, unrecognized.</p>
             </div>
-            <p className="lp-p">The businesses that pull ahead aren't always the ones that work more. They're the ones that know which work matters.</p>
-            <p className="lp-p"><strong>That clarity is no longer reserved for businesses with a CFO or a consultant on retainer. It's what TradeStack is for.</strong></p>
+            <p className="lp-p">The businesses that pull ahead aren't always the ones that work more. They're the ones with someone in their corner asking the right questions.</p>
+            <p className="lp-p"><strong>TradeStack is that someone.</strong></p>
           </div>
         </section>
 
@@ -214,8 +215,8 @@ export default function LandingPage({ onSignIn }) {
           <div className="lp-inner">
             <div className="lp-eyebrow">Get Started</div>
             <h2 className="lp-h2">Obtain what others overlook.</h2>
-            <p style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:'.78rem',fontWeight:600,letterSpacing:'.12em',textTransform:'uppercase',color:'#555',marginBottom:'1.4rem'}}>- Marcus Aurelius...maybe.</p>
-            <p className="lp-p">Free to start. No credit card. Three minutes to your Lean Canvas.</p>
+            <p style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:'.78rem',fontWeight:600,letterSpacing:'.12em',textTransform:'uppercase',color:'#555',marginBottom:'1.4rem'}}></p>
+            <p className="lp-p">Free to start. No credit card. Three minutes to your first strategy session.</p>
             <button className="lp-cta" onClick={onSignIn}>Sign Up / Login</button>
           </div>
         </section>
