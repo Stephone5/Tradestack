@@ -7,6 +7,7 @@ import Stripe from 'npm:stripe@14';
 const STRIPE_SECRET   = Deno.env.get('STRIPE_SECRET_KEY');
 const STRIPE_PRICE_ID = Deno.env.get('STRIPE_PRICE_ID') || 'price_1TFKEEIeiH9jvG6ADl2pM9ud';
 const SUPABASE_URL    = Deno.env.get('SUPABASE_URL');
+const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY');
 const SUPABASE_SERVICE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 const APP_URL         = Deno.env.get('APP_URL') || 'https://tradestack.biz';
 
@@ -32,7 +33,7 @@ Deno.serve(async (req) => {
     const stripe   = new Stripe(STRIPE_SECRET, { apiVersion: '2024-06-20', httpClient: Stripe.createFetchHttpClient() });
     const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE!);
 
-    // Verify user
+    // Verify user — JWT is automatically verified by Supabase (no --no-verify-jwt)
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       console.error('No Authorization header');
@@ -41,10 +42,12 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { data: { user }, error } =
-      await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
+    // Create an authenticated Supabase client with the user's JWT for auth verification
+    const authClient = createClient(SUPABASE_URL!, SUPABASE_ANON_KEY!);
+    const { data: { user }, error } = await authClient.auth.getUser(authHeader.replace('Bearer ', ''));
+
     if (error || !user) {
-      console.error('Auth failed:', error?.message || 'no user');
+      console.error('Auth failed:', error?.message || 'no user found');
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
