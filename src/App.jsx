@@ -760,6 +760,29 @@ PainPoints:${p.painPoints}`;
     }, { onConflict: 'user_id,cell_key' });
   }, [session]);
 
+  // -- REGENERATE SINGLE OPP CARD -------------------------------------------
+  const [regenningOpp, setRegenningOpp] = useState(null);
+  const regenOpp = async (opp) => {
+    if (regenningOpp) return;
+    setRegenningOpp(opp.id);
+    try {
+      const data = await callEdge('claude-proxy', {
+        system: `You are a revenue and efficiency consultant for small trades businesses. Generate 1 new opportunity card for the "${opp.canvas_cell}" canvas cell. Return ONLY valid JSON array: [{"canvas_cell":"${opp.canvas_cell}","title":"string","insight":"string (2-3 sentences, specific and actionable)","impact_label":"High"|"Medium"|"Low"}]. Do NOT reuse this title: "${opp.title}". Be specific to the trade.`,
+        user: `Generate a replacement opportunity for the "${opp.canvas_cell}" cell:\n${ctx()}\n\nCanvas cell content: ${canvas[opp.canvas_cell] || ''}`
+      }, session);
+      const parsed = jp(data?.text || '[]');
+      if (!Array.isArray(parsed) || parsed.length === 0) return;
+      const { data: inserted } = await supabase.from('opportunities')
+        .insert([{ user_id: session.user.id, canvas_cell: opp.canvas_cell, title: parsed[0].title, insight: parsed[0].insight, impact_label: parsed[0].impact_label || 'Medium', migrated: false, sort_order: opp.sort_order }])
+        .select().single();
+      if (inserted) {
+        await supabase.from('opportunities').delete().eq('id', opp.id);
+        setOpps(prev => prev.map(o => o.id === opp.id ? inserted : o));
+      }
+    } catch(e) { console.error('Regen opp error:', e); }
+    finally { setRegenningOpp(null); }
+  };
+
   // -- MIGRATE OPPORTUNITY -> GOAL --------------------------------------------
   const migrateToGoal = async (opp) => {
     justMigrated.current = opp.canvas_cell; // Track which cell lost an opp
@@ -994,7 +1017,7 @@ PainPoints:${p.painPoints}`;
   const TABS = [
     { id:"input",         l:"Input" },
     { id:"canvas",        l:"Canvas",        lock:!submitted },
-    { id:"opportunities", l:"Opportunities", lock:!submitted, premium:true },
+    { id:"opportunities", l:"Opportunities", lock:!submitted || oppLoading, premium:true, loading:oppLoading },
     { id:"goals",         l:"Goals",         lock:!submitted, premium:true },
   ];
 
@@ -1019,7 +1042,8 @@ PainPoints:${p.painPoints}`;
               onClick={() => !t.lock && setTab(t.id)}
             >
               {t.l}
-              {t.lock && <span className="tab-lock">lock</span>}
+              {t.lock && !t.loading && <span className="tab-lock">lock</span>}
+              {t.loading && <span className="tab-lock" style={{background:'#f5a623',color:'#000'}}>...</span>}
               {!t.lock && t.premium && !isPremium && <span className="tab-lock">pro</span>}
             </button>
           ))}
@@ -1237,7 +1261,10 @@ PainPoints:${p.painPoints}`;
                                       <div className={`opp-impact imp-${opp.impact_label?.[0]||'M'}`}>{opp.impact_label}</div>
                                     </div>
                                     <div className="opp-insight">{opp.insight}</div>
-                                    <button className="opp-cta" onClick={() => migrateToGoal(opp)}>Make it a Goal</button>
+                                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:'.5rem'}}>
+                                      <button className="opp-cta" onClick={() => migrateToGoal(opp)}>Make it a Goal</button>
+                                      <button onClick={() => regenOpp(opp)} disabled={!!regenningOpp} style={{background:'none',border:'1px solid #333',color: regenningOpp===opp.id?'#f5a623':'#666',padding:'.22rem .55rem',borderRadius:'3px',fontSize:'.72rem',cursor:'pointer',fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:'.06em'}}>{regenningOpp===opp.id?'Regenerating...':'Regenerate'}</button>
+                                    </div>
                                   </>
                               }
                             </div>
