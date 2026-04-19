@@ -202,6 +202,19 @@ textarea{resize:vertical;min-height:80px;}
 .step-days-input::placeholder{color:#444;}
 .cal-btn{background:transparent;border:none;color:#444;font-size:.9rem;cursor:pointer;padding:0 .1rem;line-height:1;transition:color .15s;flex-shrink:0;text-decoration:none;margin-top:.1rem;}
 .cal-btn:hover{color:#4caf82;}
+/* STEP TEXT BUTTON */
+.step-text-btn{flex:1;background:transparent;border:none;border-bottom:1px solid #222;outline:none;color:#ccc;font-family:'Barlow',sans-serif;font-size:.88rem;font-weight:300;text-align:left;cursor:pointer;padding:.1rem 0;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:border-color .15s;min-width:0;}
+.step-text-btn:hover{border-bottom-color:#555;color:#e8e0d4;}
+.step-text-hint{font-size:.72rem;color:#444;font-family:'Barlow Condensed',sans-serif;letter-spacing:.04em;}
+/* STEP EDIT MODAL */
+.step-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:600;display:flex;align-items:center;justify-content:center;padding:1rem;}
+.step-modal{background:#141414;border:1px solid #2a2a2a;border-radius:6px;width:100%;max-width:520px;display:flex;flex-direction:column;gap:0;}
+.step-modal-hd{display:flex;justify-content:space-between;align-items:center;padding:.85rem 1rem .6rem;border-bottom:1px solid #1e1e1e;}
+.step-modal-title{font-family:'Barlow Condensed',sans-serif;font-size:.78rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#555;}
+.step-modal-close{background:transparent;border:none;color:#444;font-size:1.1rem;cursor:pointer;padding:.1rem .3rem;line-height:1;transition:color .15s;}
+.step-modal-close:hover{color:#ccc;}
+.step-modal-ta{background:transparent;border:none;outline:none;color:#e8e0d4;font-family:'Barlow',sans-serif;font-size:1rem;font-weight:300;line-height:1.6;padding:1rem;min-height:160px;resize:vertical;width:100%;box-sizing:border-box;}
+.step-modal-ft{padding:.75rem 1rem 1rem;display:flex;justify-content:flex-end;border-top:1px solid #1e1e1e;}
 /* GOAL DELETE */
 .goal-delete-btn{background:transparent;border:1px solid #3a1a1a;color:#555;font-family:'Barlow Condensed',sans-serif;font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:.18rem .48rem;border-radius:2px;cursor:pointer;transition:all .15s;margin-top:.5rem;}
 .goal-delete-btn:hover{border-color:#e05252;color:#e05252;}
@@ -913,6 +926,19 @@ PainPoints:${p.painPoints}`;
 
   // -- DELETE GOAL (two-step confirm) ----------------------------------------
   const [deletingGoalId, setDeletingGoalId] = useState(null);
+  const [stepModal, setStepModal] = useState(null); // {goalId, stepId, text}
+  const [stepModalDraft, setStepModalDraft] = useState('');
+  const openStepModal = (goalId, step) => {
+    setStepModal({ goalId, stepId: step.id });
+    setStepModalDraft(step.step_text);
+  };
+  const closeStepModal = async () => {
+    if (stepModal && stepModalDraft !== (goalSteps[stepModal.goalId]||[]).find(s=>s.id===stepModal.stepId)?.step_text) {
+      await updateStepText(stepModal.goalId, stepModal.stepId, stepModalDraft);
+    }
+    setStepModal(null);
+    setStepModalDraft('');
+  };
   const deleteGoal = async (goalId) => {
     await supabase.from('goal_steps').delete().eq('goal_id', goalId);
     await supabase.from('goals').delete().eq('id', goalId);
@@ -1400,14 +1426,14 @@ PainPoints:${p.painPoints}`;
                                         >
                                           {step.status==='done' ? 'done' : step.status==='in_progress' ? '...' : ''}
                                         </button>
-                                        <textarea
-                                          className="step-text-input"
-                                          value={step.step_text}
-                                          onChange={e => { updateStepText(goal.id, step.id, e.target.value); e.target.style.height='auto'; e.target.style.height=e.target.scrollHeight+'px'; }}
-                                          onFocus={e => { e.target.style.height='auto'; e.target.style.height=e.target.scrollHeight+'px'; }}
-                                          style={{ textDecoration: step.status==='done'?'line-through':'', rows:1 }}
-                                          rows={1}
-                                        />
+                                        <button
+                                          className="step-text-btn"
+                                          onClick={() => openStepModal(goal.id, step)}
+                                          style={{ textDecoration: step.status==='done'?'line-through':'' }}
+                                        >
+                                          {step.step_text.includes(':') ? step.step_text.split(':')[0].trim() : step.step_text.slice(0,50)}
+                                          {step.step_text.includes(':') && <span className="step-text-hint"> — tap to expand</span>}
+                                        </button>
                                         <input
                                           className="step-days-input"
                                           type="number"
@@ -1480,6 +1506,28 @@ PainPoints:${p.painPoints}`;
           <button className="legal-pg-link" onClick={() => setShowLegalModal('view')}>Legal</button>
 
         </div>{/* end .pg */}
+
+        {/* -- STEP EDIT MODAL ------------------------------------------- */}
+        {stepModal && (
+          <div className="step-modal-overlay" onClick={closeStepModal}>
+            <div className="step-modal" onClick={e => e.stopPropagation()}>
+              <div className="step-modal-hd">
+                <span className="step-modal-title">Edit Step</span>
+                <button className="step-modal-close" onClick={closeStepModal}>✕</button>
+              </div>
+              <textarea
+                className="step-modal-ta"
+                value={stepModalDraft}
+                onChange={e => setStepModalDraft(e.target.value)}
+                autoFocus
+                placeholder="Describe this step..."
+              />
+              <div className="step-modal-ft">
+                <button className="btn bp" style={{width:'auto',padding:'.5rem 1.4rem'}} onClick={closeStepModal}>Save &amp; Close</button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* -- CONTACT SUPPORT BUBBLE ------------------------------------- */}
         <div className="cs-bubble">
