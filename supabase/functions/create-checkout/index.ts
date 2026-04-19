@@ -104,6 +104,7 @@ Deno.serve(async (req) => {
       cancel_url:  APP_URL + '/?checkout=canceled',
       metadata:    { user_id: user_id },
       subscription_data: { trial_period_days: 7, metadata: { user_id: user_id } },
+      allow_promotion_codes: true,
     });
 
     console.log('Checkout session created:', checkoutSession.id);

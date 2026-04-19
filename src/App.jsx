@@ -194,12 +194,23 @@ textarea{resize:vertical;min-height:80px;}
 .step-check{width:20px;height:20px;min-width:20px;border:1px solid #333;border-radius:2px;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;margin-top:.1rem;transition:all .15s;font-size:.8rem;color:#4caf82;}
 .step-check.done{border-color:#4caf82;background:#0e1e16;}
 .step-check.ip{border-color:#f5a623;}
-.step-text-input{flex:1;background:transparent;border:none;border-bottom:1px solid transparent;outline:none;color:#ccc;font-family:'Barlow',sans-serif;font-size:.95rem;font-weight:300;transition:border-color .15s;padding-bottom:.1rem;}
+.step-text-input{flex:1;background:transparent;border:none;border-bottom:1px solid transparent;outline:none;color:#ccc;font-family:'Barlow',sans-serif;font-size:.88rem;font-weight:300;transition:border-color .15s;padding-bottom:.1rem;resize:none;overflow:hidden;line-height:1.4;min-height:1.2em;}
 .step-text-input:focus{border-bottom-color:#333;}
 .step-time{font-family:'Barlow Condensed',sans-serif;font-size:.72rem;color:#444;letter-spacing:.06em;white-space:nowrap;}
 .step-days-input{width:3.2rem;background:transparent;border:none;border-bottom:1px solid #333;outline:none;color:#666;font-family:'Barlow Condensed',sans-serif;font-size:.78rem;text-align:center;padding-bottom:.1rem;}
 .step-days-input:focus{border-bottom-color:#f5a623;color:#ccc;}
 .step-days-input::placeholder{color:#444;}
+.cal-btn{background:transparent;border:none;color:#444;font-size:.9rem;cursor:pointer;padding:0 .1rem;line-height:1;transition:color .15s;flex-shrink:0;text-decoration:none;margin-top:.1rem;}
+.cal-btn:hover{color:#4caf82;}
+/* GOAL DELETE */
+.goal-delete-btn{background:transparent;border:1px solid #3a1a1a;color:#555;font-family:'Barlow Condensed',sans-serif;font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:.18rem .48rem;border-radius:2px;cursor:pointer;transition:all .15s;margin-top:.5rem;}
+.goal-delete-btn:hover{border-color:#e05252;color:#e05252;}
+.goal-confirm-row{display:flex;align-items:center;gap:.5rem;padding:.6rem 0 0;border-top:1px solid #2a1a1a;margin-top:.5rem;flex-wrap:wrap;}
+.goal-confirm-text{font-family:'Barlow Condensed',sans-serif;font-size:.82rem;font-weight:600;letter-spacing:.04em;color:#888;flex:1;min-width:120px;}
+.goal-confirm-yes{background:#3a1a1a;border:1px solid #e05252;color:#e05252;font-family:'Barlow Condensed',sans-serif;font-size:.72rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:.22rem .6rem;border-radius:2px;cursor:pointer;transition:all .15s;}
+.goal-confirm-yes:hover{background:#e05252;color:#fff;}
+.goal-confirm-no{background:transparent;border:1px solid #333;color:#555;font-family:'Barlow Condensed',sans-serif;font-size:.72rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:.22rem .6rem;border-radius:2px;cursor:pointer;transition:border-color .15s;}
+.goal-confirm-no:hover{border-color:#555;color:#888;}
 .sms-toggle-row{display:flex;align-items:center;justify-content:space-between;border-top:1px solid #1e1e1e;padding-top:.65rem;margin-top:.5rem;}
 .sms-toggle-label{font-family:'Barlow Condensed',sans-serif;font-size:.78rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#555;}
 .toggle{position:relative;display:inline-block;width:36px;height:20px;}
@@ -781,7 +792,7 @@ PainPoints:${p.painPoints}`;
     // Generate steps with AI
     try {
       const data = await callEdge('claude-proxy', {
-        system: `You are an execution coach for small business owners. Generate 3-6 specific, actionable steps to achieve this goal. Return ONLY valid JSON array: [{"step_text":"string"}]`,
+        system: `You are an execution coach for small business owners. Generate 3-6 specific, actionable steps to achieve this goal. Format each step as: "Short Title: detailed explanation of how to complete this step." The title (before the colon) must be 4-5 words max and act as a clear action label. The description (after the colon) should be specific and actionable. Return ONLY valid JSON array: [{"step_text":"string"}]`,
         user: `Goal: ${opp.title}\nContext: ${opp.insight}\n\nBusiness:\n${ctx()}`
       }, session);
       const steps = jp(data?.text || '[]');
@@ -875,6 +886,40 @@ PainPoints:${p.painPoints}`;
     }));
     await supabase.from('goal_steps')
       .update({ days_to_complete: days, updated_at: new Date().toISOString() }).eq('id', stepId);
+  };
+
+  // -- DELETE GOAL (two-step confirm) ----------------------------------------
+  const [deletingGoalId, setDeletingGoalId] = useState(null);
+  const deleteGoal = async (goalId) => {
+    await supabase.from('goal_steps').delete().eq('goal_id', goalId);
+    await supabase.from('goals').delete().eq('id', goalId);
+    setGoals(prev => prev.filter(g => g.id !== goalId));
+    setGoalSteps(prev => { const n = {...prev}; delete n[goalId]; return n; });
+    setDeletingGoalId(null);
+  };
+
+  // -- GOOGLE CALENDAR URL HELPER --------------------------------------------
+  const gcalUrl = (step, goal) => {
+    const today = new Date();
+    const startDate = step.days_to_complete
+      ? new Date(today.getTime() + step.days_to_complete * 86400000)
+      : today;
+    const endDate = new Date(startDate.getTime() + 86400000);
+    const fmt = d => d.toISOString().slice(0, 10).replace(/-/g, '');
+    const colonIdx = step.step_text.indexOf(':');
+    const eventTitle = colonIdx > -1
+      ? step.step_text.slice(0, colonIdx).trim()
+      : step.step_text.slice(0, 60).trim();
+    const eventDetails = colonIdx > -1
+      ? `${step.step_text.slice(colonIdx + 1).trim()}\n\nGoal: ${goal.title}`
+      : `Goal: ${goal.title}`;
+    const params = new URLSearchParams({
+      action: 'TEMPLATE',
+      text: eventTitle,
+      details: eventDetails,
+      dates: `${fmt(startDate)}/${fmt(endDate)}`,
+    });
+    return `https://calendar.google.com/calendar/render?${params}`;
   };
 
   // -- TOGGLE SMS FOR GOAL ---------------------------------------------------
@@ -1172,7 +1217,7 @@ PainPoints:${p.painPoints}`;
                   </div>
                 </div>
               : oppLoading
-                ? <div className="loader"><div className="lbar"/><div className="llbl">Generating opportunities...</div></div>
+                ? <div className="loader"><div className="lbar"/><div className="llbl" style={{color:'#888'}}>Your Chief Strategy Officer is writing up his report. Wait ~45 seconds.</div></div>
                 : Object.keys(groupedOpps).length === 0
                   ? <div className="empty">
                       <p>No opportunities yet.</p>
@@ -1328,11 +1373,13 @@ PainPoints:${p.painPoints}`;
                                         >
                                           {step.status==='done' ? 'done' : step.status==='in_progress' ? '...' : ''}
                                         </button>
-                                        <input
+                                        <textarea
                                           className="step-text-input"
                                           value={step.step_text}
-                                          onChange={e => updateStepText(goal.id, step.id, e.target.value)}
-                                          style={{ textDecoration: step.status==='done'?'line-through':'' }}
+                                          onChange={e => { updateStepText(goal.id, step.id, e.target.value); e.target.style.height='auto'; e.target.style.height=e.target.scrollHeight+'px'; }}
+                                          onFocus={e => { e.target.style.height='auto'; e.target.style.height=e.target.scrollHeight+'px'; }}
+                                          style={{ textDecoration: step.status==='done'?'line-through':'', rows:1 }}
+                                          rows={1}
                                         />
                                         <input
                                           className="step-days-input"
@@ -1342,8 +1389,27 @@ PainPoints:${p.painPoints}`;
                                           value={step.days_to_complete ?? ''}
                                           onChange={e => updateStepDays(goal.id, step.id, e.target.value)}
                                         />
+                                        <a
+                                          className="cal-btn"
+                                          href={gcalUrl(step, goal)}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          title="Add to Google Calendar"
+                                        >📅</a>
                                       </div>
                                     ))}
+                                  </div>
+                                )}
+
+                                {/* Delete Goal */}
+                                {goal.status === 'completed' && deletingGoalId !== goal.id && (
+                                  <button className="goal-delete-btn" onClick={() => setDeletingGoalId(goal.id)}>Delete</button>
+                                )}
+                                {deletingGoalId === goal.id && (
+                                  <div className="goal-confirm-row">
+                                    <span className="goal-confirm-text">Delete this goal permanently?</span>
+                                    <button className="goal-confirm-yes" onClick={() => deleteGoal(goal.id)}>Yes, Delete</button>
+                                    <button className="goal-confirm-no" onClick={() => setDeletingGoalId(null)}>Cancel</button>
                                   </div>
                                 )}
 
