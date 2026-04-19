@@ -5,7 +5,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 import Stripe from 'npm:stripe@14';
 
 const STRIPE_SECRET   = Deno.env.get('STRIPE_SECRET_KEY');
-const STRIPE_PRICE_ID = Deno.env.get('STRIPE_PRICE_ID') || 'price_1TFKEEIeiH9jvG6ADl2pM9ud';
+const STRIPE_PRICE_ID = Deno.env.get('STRIPE_PRICE_ID');
 const SUPABASE_URL    = Deno.env.get('SUPABASE_URL');
 const SUPABASE_SERVICE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 const APP_URL         = Deno.env.get('APP_URL') || 'https://tradestack.biz';
@@ -21,9 +21,15 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Guard: Stripe key must exist
+    // Guard: Stripe key and price must exist
     if (!STRIPE_SECRET) {
       console.error('STRIPE_SECRET_KEY is not set');
+      return new Response(JSON.stringify({ error: 'Payment service not configured.' }), {
+        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+    if (!STRIPE_PRICE_ID) {
+      console.error('STRIPE_PRICE_ID is not set');
       return new Response(JSON.stringify({ error: 'Payment service not configured.' }), {
         status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
